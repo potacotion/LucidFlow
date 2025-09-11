@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@vue-flow/background':
+        specifier: ^1.3.2
+        version: 1.3.2(@vue-flow/core@1.46.3(vue@3.5.21(typescript@5.8.3)))(vue@3.5.21(typescript@5.8.3))
       '@vue-flow/core':
         specifier: ^1.46.3
         version: 1.46.3(vue@3.5.21(typescript@5.8.3))
@@ -21,6 +24,18 @@ importers:
         specifier: ^4.5.0
         version: 4.5.1(vue@3.5.21(typescript@5.8.3))
     devDependencies:
+      '@fortawesome/fontawesome-free':
+        specifier: ^7.0.1
+        version: 7.0.1
+      '@fortawesome/free-brands-svg-icons':
+        specifier: ^7.0.1
+        version: 7.0.1
+      '@fortawesome/free-solid-svg-icons':
+        specifier: ^7.0.1
+        version: 7.0.1
+      '@fortawesome/vue-fontawesome':
+        specifier: ^3.1.2
+        version: 3.1.2(@fortawesome/fontawesome-svg-core@7.0.1)(vue@3.5.21(typescript@5.8.3))
       '@playwright/test':
         specifier: ^1.51.1
         version: 1.55.0
@@ -458,6 +473,32 @@ packages:
     resolution: {integrity: sha512-Z5kJ+wU3oA7MMIqVR9tyZRtjYPr4OC004Q4Rw7pgOKUOKkJfZ3O24nz3WYfGRpMDNmcOi3TwQOmgm7B7Tpii0w==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
 
+  '@fortawesome/fontawesome-common-types@7.0.1':
+    resolution: {integrity: sha512-0VpNtO5cNe1/HQWMkl4OdncYK/mv9hnBte0Ew0n6DMzmo3Q3WzDFABHm6LeNTipt5zAyhQ6Ugjiu8aLaEjh1gg==}
+    engines: {node: '>=6'}
+
+  '@fortawesome/fontawesome-free@7.0.1':
+    resolution: {integrity: sha512-RLmb9U6H2rJDnGxEqXxzy7ANPrQz7WK2/eTjdZqyU9uRU5W+FkAec9uU5gTYzFBH7aoXIw2WTJSCJR4KPlReQw==}
+    engines: {node: '>=6'}
+
+  '@fortawesome/fontawesome-svg-core@7.0.1':
+    resolution: {integrity: sha512-x0cR55ILVqFpUioSMf6ebpRCMXMcheGN743P05W2RB5uCNpJUqWIqW66Lap8PfL/lngvjTbZj0BNSUweIr/fHQ==}
+    engines: {node: '>=6'}
+
+  '@fortawesome/free-brands-svg-icons@7.0.1':
+    resolution: {integrity: sha512-6xPmn5SrND/GM0+W33E77x05+aDn6RpR02eWd8eLdN0IxY0vXa5yU/ugaAKloOVxiG9w2330TSRsbJYL6c57Ow==}
+    engines: {node: '>=6'}
+
+  '@fortawesome/free-solid-svg-icons@7.0.1':
+    resolution: {integrity: sha512-esKuSrl1WMOTMDLNt38i16VfLe/gRZt2ZAJ3Yw7slfs7sj583MKqNFqO57zmhknk1Sya6f9Wys89aCzIJkcqlg==}
+    engines: {node: '>=6'}
+
+  '@fortawesome/vue-fontawesome@3.1.2':
+    resolution: {integrity: sha512-mhYnBIuuW8OIMHf31kOjaBmyE7BMrwBorhrOHVud6vTTu+7IPQNWB+DWaHoE75v10dRF5s/dFtcrgE7vKSEWwQ==}
+    peerDependencies:
+      '@fortawesome/fontawesome-svg-core': ~1 || ~6 || ~7
+      vue: '>= 3.0.0 < 4'
+
   '@humanfs/core@0.19.1':
     resolution: {integrity: sha512-5DyQ4+1JEUzejeK1JGICcideyfUbGixgS9jNgex5nqkW+cY7WZhxBigmieN5Qnw9ZosSNVC9KQKyb+GUaGyKUA==}
     engines: {node: '>=18.18.0'}
@@ -788,6 +829,12 @@ packages:
 
   '@volar/typescript@2.4.15':
     resolution: {integrity: sha512-2aZ8i0cqPGjXb4BhkMsPYDkkuc2ZQ6yOpqwAuNwUoncELqoy5fRgOQtLR9gB0g902iS0NAkvpIzs27geVyVdPg==}
+
+  '@vue-flow/background@1.3.2':
+    resolution: {integrity: sha512-eJPhDcLj1wEo45bBoqTXw1uhl0yK2RaQGnEINqvvBsAFKh/camHJd5NPmOdS1w+M9lggc9igUewxaEd3iCQX2w==}
+    peerDependencies:
+      '@vue-flow/core': ^1.23.0
+      vue: ^3.3.0
 
   '@vue-flow/core@1.46.3':
     resolution: {integrity: sha512-OiR3vrfxvgBmR6N5zw6H4eRvs/51hj3orMktqw4b/nWq0BydWlY+PquTe/Kcw6A7RRqPu51XqOOvUm5aPw5fcg==}
@@ -2552,6 +2599,27 @@ snapshots:
       '@eslint/core': 0.15.2
       levn: 0.4.1
 
+  '@fortawesome/fontawesome-common-types@7.0.1': {}
+
+  '@fortawesome/fontawesome-free@7.0.1': {}
+
+  '@fortawesome/fontawesome-svg-core@7.0.1':
+    dependencies:
+      '@fortawesome/fontawesome-common-types': 7.0.1
+
+  '@fortawesome/free-brands-svg-icons@7.0.1':
+    dependencies:
+      '@fortawesome/fontawesome-common-types': 7.0.1
+
+  '@fortawesome/free-solid-svg-icons@7.0.1':
+    dependencies:
+      '@fortawesome/fontawesome-common-types': 7.0.1
+
+  '@fortawesome/vue-fontawesome@3.1.2(@fortawesome/fontawesome-svg-core@7.0.1)(vue@3.5.21(typescript@5.8.3))':
+    dependencies:
+      '@fortawesome/fontawesome-svg-core': 7.0.1
+      vue: 3.5.21(typescript@5.8.3)
+
   '@humanfs/core@0.19.1': {}
 
   '@humanfs/node@0.16.7':
@@ -2879,6 +2947,11 @@ snapshots:
       '@volar/language-core': 2.4.15
       path-browserify: 1.0.1
       vscode-uri: 3.1.0
+
+  '@vue-flow/background@1.3.2(@vue-flow/core@1.46.3(vue@3.5.21(typescript@5.8.3)))(vue@3.5.21(typescript@5.8.3))':
+    dependencies:
+      '@vue-flow/core': 1.46.3(vue@3.5.21(typescript@5.8.3))
+      vue: 3.5.21(typescript@5.8.3)
 
   '@vue-flow/core@1.46.3(vue@3.5.21(typescript@5.8.3))':
     dependencies:

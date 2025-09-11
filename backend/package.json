@@ -1,26 +1,73 @@
 {
   "name": "backend",
-  "version": "1.0.0",
-  "main": "dist/index.js",
-  "type": "commonjs",
+  "version": "0.0.0",
   "scripts": {
-    "build": "tsc",
-    "start": "node dist/index.js",
-    "test": "vitest"
+    "build": "ts-node ./scripts/build.ts",
+    "clean-install": "rm -rf ./node_modules && rm -r package-lock.json && npm i",
+    "dev": "cross-env NODE_ENV=development ts-node ./src",
+    "dev:hot": "nodemon --exec \"npm run dev\" --watch ./src --ext .ts",
+    "lint": "eslint .",
+    "start": "cross-env NODE_ENV=production node -r ./config.js ./dist",
+    "test": "cross-env NODE_ENV=test vitest",
+    "type-check": "tsc --noEmit",
+    "prisma:dev": "cross-env NODE_ENV=development dotenv -e config/.env.development -- npx prisma migrate dev",
+    "prisma:reset": "cross-env NODE_ENV=development dotenv -e config/.env.development -- npx prisma migrate reset",
+    "prisma:generate": "cross-env NODE_ENV=development dotenv -e config/.env.development -- npx prisma generate",
+    "prisma:studio": "cross-env NODE_ENV=development dotenv -e config/.env.development -- npx prisma studio",
+    "prisma:seed": "cross-env NODE_ENV=development dotenv -e config/.env.development -- npx prisma db seed",
+    "prisma:prod:generate": "cross-env NODE_ENV=production dotenv -e config/.env.production -- npx prisma generate",
+    "prisma:prod:migrate": "cross-env NODE_ENV=production dotenv -e config/.env.production -- npx prisma migrate deploy",
+    "prisma:prod:status": "cross-env NODE_ENV=production dotenv -e config/.env.production -- npx prisma migrate status"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
-  "devDependencies": {
-    "@types/express": "^5.0.3",
-    "@types/node": "^24.3.1",
-    "@vitest/coverage-v8": "^3.2.4",
-    "express": "^5.1.0",
-    "typescript": "^5.9.2",
-    "vitest": "^3.2.4"
+  "engines": {
+    "node": ">=16.0.0"
   },
   "dependencies": {
-    "openai": "^5.19.1"
+    "@prisma/client": "^6.16.1",
+    "cookie-parser": "^1.4.7",
+    "dayjs": "^1.11.18",
+    "dotenv": "^17.2.2",
+    "express": "^5.1.0",
+    "helmet": "^8.1.0",
+    "inserturlparams": "^2.0.5",
+    "jet-env": "^1.1.4",
+    "jet-logger": "^2.0.1",
+    "jet-paths": "^1.1.0",
+    "jet-validators": "^1.4.3",
+    "jsonfile": "^6.2.0",
+    "module-alias": "^2.2.3",
+    "morgan": "^1.10.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.35.0",
+    "@stylistic/eslint-plugin-js": "^4.4.1",
+    "@stylistic/eslint-plugin-ts": "^4.4.1",
+    "@swc/core": "^1.13.5",
+    "@types/cookie-parser": "^1.4.9",
+    "@types/find": "^0.2.4",
+    "@types/fs-extra": "^11.0.4",
+    "@types/jsonfile": "^6.1.4",
+    "@types/module-alias": "^2.0.4",
+    "@types/morgan": "^1.9.10",
+    "@types/node": "^24.3.1",
+    "@types/supertest": "^6.0.3",
+    "cross-env": "^10.0.0",
+    "dotenv-cli": "^10.0.0",
+    "eslint": "^9.35.0",
+    "eslint-plugin-n": "^17.21.3",
+    "find": "^0.3.0",
+    "fs-extra": "^11.3.1",
+    "jiti": "^2.5.1",
+    "nodemon": "^3.1.10",
+    "prisma": "^6.16.1",
+    "supertest": "^7.1.4",
+    "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.2.0",
+    "typescript": "^5.9.2",
+    "typescript-eslint": "^8.43.0",
+    "vitest": "^3.2.4"
+  },
+  "prisma": {
+    "schema": "src/repos/prisma/schema.prisma"
   }
 }

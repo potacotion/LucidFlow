@@ -1,45 +1,27 @@
-import express from 'express';
-import { WorkflowEngine } from './workflow/engine';
-import { ManualInputNode } from './nodes/manualInput';
-import { TemplateNode } from './nodes/template';
-import { LLMPromptNode } from './nodes/llmPrompt';
-import { OutputNode } from './nodes/output';
-import { CodeNode } from './nodes/code';
-import { Workflow } from './types/workflow';
+import logger from 'jet-logger';
 
-const app = express();
-const port = 3000;
+import ENV from '@src/common/constants/ENV';
+import server from './server';
 
-app.use(express.json());
 
-// 初始化工作流引擎并注册节点
-const workflowEngine = new WorkflowEngine();
-workflowEngine.registerNodeExecutor('manualInput', new ManualInputNode());
-workflowEngine.registerNodeExecutor('template', new TemplateNode());
-workflowEngine.registerNodeExecutor('llmPrompt', new LLMPromptNode());
-workflowEngine.registerNodeExecutor('output', new OutputNode());
-workflowEngine.registerNodeExecutor('code', new CodeNode());
+/******************************************************************************
+                                Constants
+******************************************************************************/
 
-app.post('/api/workflow/run', async (req, res) => {
-  const { workflow, startNodeId, inputs } = req.body as {
-    workflow: Workflow;
-    startNodeId: string;
-    inputs: { [nodeId: string]: any };
-  };
+const SERVER_START_MSG = (
+  'Express server started on port: ' + ENV.Port.toString()
+);
 
-  try {
-    const results = await workflowEngine.execute(workflow, startNodeId, inputs);
-    res.json({ success: true, results });
-  } catch (error: any) {
-    console.error('Workflow execution error:', error);
-    res.status(500).json({ success: false, message: error.message });
+
+/******************************************************************************
+                                  Run
+******************************************************************************/
+
+// Start the server
+server.listen(ENV.Port, err => {
+  if (!!err) {
+    logger.err(err.message);
+  } else {
+    logger.info(SERVER_START_MSG);
   }
-});
-
-app.get('/', (req, res) => {
-  res.send('Hello from backend!');
-});
-
-app.listen(port, () => {
-  console.log(`Backend server listening at http://localhost:${port}`);
 });
