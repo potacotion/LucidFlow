@@ -1,0 +1,117 @@
+import { Router, Request, Response } from 'express';
+import { PrismaClient } from '@prisma/client';
+import { Workflow } from '@src/models/workflow'; // 确保路径正确
+import Paths from '@src/common/constants/Paths';
+
+const prisma = new PrismaClient();
+const router = Router();
+
+// 创建工作流
+router.post(Paths.Workflows.Add, async (req: Request, res: Response) => {
+    try {
+        const workflowData = Workflow.transformFrontendData(req.body);
+        const newWorkflow = await prisma.workflowNode.create({
+            data: {
+                ...workflowData,
+                nodes: {
+                    create: workflowData.nodes,
+                },
+                edges: {
+                    create: workflowData.edges,
+                },
+            },
+            include: {
+                nodes: true,
+                edges: true,
+            },
+        });
+        res.status(201).json(newWorkflow);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Failed to create workflow' });
+    }
+});
+
+// 获取所有工作流
+router.get(Paths.Workflows.GetAll, async (req: Request, res: Response) => {
+    try {
+        const workflows = await prisma.workflowNode.findMany({
+            include: {
+                nodes: true,
+                edges: true,
+            },
+        });
+        res.json(workflows);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch workflows' });
+    }
+});
+
+// 获取单个工作流
+router.get(Paths.Workflows.Get, async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const workflow = await prisma.workflowNode.findUnique({
+            where: { id: parseInt(id, 10) },
+            include: {
+                nodes: true,
+                edges: true,
+            },
+        });
+        if (workflow) {
+            res.json(workflow);
+        } else {
+            res.status(404).json({ error: 'Workflow not found' });
+        }
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch workflow' });
+    }
+});
+
+// 更新工作流
+router.put(Paths.Workflows.Update, async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const workflowData = Workflow.transformFrontendData(req.body);
+
+        // Prisma 不支持直接更新嵌套的 create，所以需要先删除旧的 nodes 和 edges
+        await prisma.node.deleteMany({ where: { workflowNodeId: parseInt(id, 10) } });
+        await prisma.edge.deleteMany({ where: { workflowNodeId: parseInt(id, 10) } });
+
+        const updatedWorkflow = await prisma.workflowNode.update({
+            where: { id: parseInt(id, 10) },
+            data: {
+                ...workflowData,
+                nodes: {
+                    create: workflowData.nodes,
+                },
+                edges: {
+                    create: workflowData.edges,
+                },
+            },
+            include: {
+                nodes: true,
+                edges: true,
+            },
+        });
+        res.json(updatedWorkflow);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Failed to update workflow' });
+    }
+});
+
+// 删除工作流
+router.delete(Paths.Workflows.Delete, async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        await prisma.workflowNode.delete({
+            where: { id: parseInt(id, 10) },
+        });
+        res.status(204).send();
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to delete workflow' });
+    }
+});
+
+export default router;

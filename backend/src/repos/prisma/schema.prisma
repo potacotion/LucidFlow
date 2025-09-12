@@ -13,3 +13,55 @@ datasource db {
   provider = "sqlite"
   url      = env("DATABASE_URL")
 }
+
+// 核心工作流表
+model WorkflowNode {
+  id          Int      @id @default(autoincrement())
+  discription String?  // 保持接口拼写
+  name        String?
+  version     String?
+  createdAt   DateTime @default(now()) @map("createdAt")
+  updatedAt   DateTime @updatedAt @map("updatedAt")
+
+  // 一对多
+  nodes Node[]
+  edges Edge[]
+
+  @@map("workflownode")
+}
+
+// 边表
+model Edge {
+  id             Int      @id @default(autoincrement())
+  edgeid         String // 前端 id，不唯一
+  source         String
+  target         String
+  sourceHandle   String?
+  targetHandle   String?
+  label          String?
+  animated       Boolean
+  style          Json? // JSON 对象
+  workflowNodeId Int
+  workflow       WorkflowNode @relation(fields: [workflowNodeId], references: [id], onDelete: Cascade)
+
+  // 复合唯一：同一工作流下 edgeid 唯一
+  @@unique([workflowNodeId, edgeid])
+  @@map("edge")
+}
+
+// 节点表
+model Node {
+  id             Int      @id @default(autoincrement())
+  nodeid         String // 前端 id，不唯一
+  type           String
+  data           Json // JSON 对象
+  position       Json // {x,y} 对象
+  style          Json? // JSON 对象
+  run            Json // JSON 对象
+  workflowNodeId Int
+  workflow       WorkflowNode @relation(fields: [workflowNodeId], references: [id], onDelete: Cascade)
+
+  // 复合唯一：同一工作流下 nodeid 唯一
+  @@unique([workflowNodeId, nodeid])
+  @@map("node")
+}

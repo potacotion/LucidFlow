@@ -117,9 +117,74 @@ exports.Prisma.TransactionIsolationLevel = makeStrictEnum({
   Serializable: 'Serializable'
 });
 
+exports.Prisma.WorkflowNodeScalarFieldEnum = {
+  id: 'id',
+  discription: 'discription',
+  name: 'name',
+  version: 'version',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.EdgeScalarFieldEnum = {
+  id: 'id',
+  edgeid: 'edgeid',
+  source: 'source',
+  target: 'target',
+  sourceHandle: 'sourceHandle',
+  targetHandle: 'targetHandle',
+  label: 'label',
+  animated: 'animated',
+  style: 'style',
+  workflowNodeId: 'workflowNodeId'
+};
+
+exports.Prisma.NodeScalarFieldEnum = {
+  id: 'id',
+  nodeid: 'nodeid',
+  type: 'type',
+  data: 'data',
+  position: 'position',
+  style: 'style',
+  run: 'run',
+  workflowNodeId: 'workflowNodeId'
+};
+
+exports.Prisma.SortOrder = {
+  asc: 'asc',
+  desc: 'desc'
+};
+
+exports.Prisma.NullableJsonNullValueInput = {
+  DbNull: Prisma.DbNull,
+  JsonNull: Prisma.JsonNull
+};
+
+exports.Prisma.JsonNullValueInput = {
+  JsonNull: Prisma.JsonNull
+};
+
+exports.Prisma.NullsOrder = {
+  first: 'first',
+  last: 'last'
+};
+
+exports.Prisma.JsonNullValueFilter = {
+  DbNull: Prisma.DbNull,
+  JsonNull: Prisma.JsonNull,
+  AnyNull: Prisma.AnyNull
+};
+
+exports.Prisma.QueryMode = {
+  default: 'default',
+  insensitive: 'insensitive'
+};
+
 
 exports.Prisma.ModelName = {
-
+  WorkflowNode: 'WorkflowNode',
+  Edge: 'Edge',
+  Node: 'Node'
 };
 
 /**

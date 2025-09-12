@@ -89,9 +89,74 @@ exports.Prisma.TransactionIsolationLevel = makeStrictEnum({
   Serializable: 'Serializable'
 });
 
+exports.Prisma.WorkflowNodeScalarFieldEnum = {
+  id: 'id',
+  discription: 'discription',
+  name: 'name',
+  version: 'version',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.EdgeScalarFieldEnum = {
+  id: 'id',
+  edgeid: 'edgeid',
+  source: 'source',
+  target: 'target',
+  sourceHandle: 'sourceHandle',
+  targetHandle: 'targetHandle',
+  label: 'label',
+  animated: 'animated',
+  style: 'style',
+  workflowNodeId: 'workflowNodeId'
+};
+
+exports.Prisma.NodeScalarFieldEnum = {
+  id: 'id',
+  nodeid: 'nodeid',
+  type: 'type',
+  data: 'data',
+  position: 'position',
+  style: 'style',
+  run: 'run',
+  workflowNodeId: 'workflowNodeId'
+};
+
+exports.Prisma.SortOrder = {
+  asc: 'asc',
+  desc: 'desc'
+};
+
+exports.Prisma.NullableJsonNullValueInput = {
+  DbNull: Prisma.DbNull,
+  JsonNull: Prisma.JsonNull
+};
+
+exports.Prisma.JsonNullValueInput = {
+  JsonNull: Prisma.JsonNull
+};
+
+exports.Prisma.NullsOrder = {
+  first: 'first',
+  last: 'last'
+};
+
+exports.Prisma.JsonNullValueFilter = {
+  DbNull: Prisma.DbNull,
+  JsonNull: Prisma.JsonNull,
+  AnyNull: Prisma.AnyNull
+};
+
+exports.Prisma.QueryMode = {
+  default: 'default',
+  insensitive: 'insensitive'
+};
+
 
 exports.Prisma.ModelName = {
-
+  WorkflowNode: 'WorkflowNode',
+  Edge: 'Edge',
+  Node: 'Node'
 };
 /**
  * Create the Client
@@ -140,13 +205,13 @@ const config = {
       }
     }
   },
-  "inlineSchema": "// This is your Prisma schema file,\n// learn more about it in the docs: https://pris.ly/d/prisma-schema\n\n// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?\n// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init\n\ngenerator client {\n  provider = \"prisma-client-js\"\n  output   = \"./generated/prisma\"\n}\n\ndatasource db {\n  provider = \"sqlite\"\n  url      = env(\"DATABASE_URL\")\n}\n",
-  "inlineSchemaHash": "57ecd4cd1edb3288fbc0dc57c77b352f2de9a6e047964d9061a4b864f7e1b269",
+  "inlineSchema": "// This is your Prisma schema file,\n// learn more about it in the docs: https://pris.ly/d/prisma-schema\n\n// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?\n// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init\n\ngenerator client {\n  provider = \"prisma-client-js\"\n  output   = \"./generated/prisma\"\n}\n\ndatasource db {\n  provider = \"sqlite\"\n  url      = env(\"DATABASE_URL\")\n}\n\n// 核心工作流表\nmodel WorkflowNode {\n  id          Int      @id @default(autoincrement())\n  discription String? // 保持接口拼写\n  name        String?\n  version     String?\n  createdAt   DateTime @default(now()) @map(\"createdAt\")\n  updatedAt   DateTime @updatedAt @map(\"updatedAt\")\n\n  // 一对多\n  nodes Node[]\n  edges Edge[]\n\n  @@map(\"workflownode\")\n}\n\n// 边表\nmodel Edge {\n  id             Int          @id @default(autoincrement())\n  edgeid         String // 前端 id，不唯一\n  source         String\n  target         String\n  sourceHandle   String?\n  targetHandle   String?\n  label          String?\n  animated       Boolean\n  style          Json? // JSON 对象\n  workflowNodeId Int\n  workflow       WorkflowNode @relation(fields: [workflowNodeId], references: [id], onDelete: Cascade)\n\n  // 复合唯一：同一工作流下 edgeid 唯一\n  @@unique([workflowNodeId, edgeid])\n  @@map(\"edge\")\n}\n\n// 节点表\nmodel Node {\n  id             Int          @id @default(autoincrement())\n  nodeid         String // 前端 id，不唯一\n  type           String\n  data           Json // JSON 对象\n  position       Json // {x,y} 对象\n  style          Json? // JSON 对象\n  run            Json // JSON 对象\n  workflowNodeId Int\n  workflow       WorkflowNode @relation(fields: [workflowNodeId], references: [id], onDelete: Cascade)\n\n  // 复合唯一：同一工作流下 nodeid 唯一\n  @@unique([workflowNodeId, nodeid])\n  @@map(\"node\")\n}\n",
+  "inlineSchemaHash": "b09752f412f598b8aa835447502b17d20d605f42bea31cfe149ff4c40568a80e",
   "copyEngine": true
 }
 config.dirname = '/'
 
-config.runtimeDataModel = JSON.parse("{\"models\":{},\"enums\":{},\"types\":{}}")
+config.runtimeDataModel = JSON.parse("{\"models\":{\"WorkflowNode\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"discription\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"version\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"createdAt\"},{\"name\":\"updatedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"updatedAt\"},{\"name\":\"nodes\",\"kind\":\"object\",\"type\":\"Node\",\"relationName\":\"NodeToWorkflowNode\"},{\"name\":\"edges\",\"kind\":\"object\",\"type\":\"Edge\",\"relationName\":\"EdgeToWorkflowNode\"}],\"dbName\":\"workflownode\"},\"Edge\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"edgeid\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"source\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"target\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"sourceHandle\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"targetHandle\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"label\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"animated\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"style\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"workflowNodeId\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"workflow\",\"kind\":\"object\",\"type\":\"WorkflowNode\",\"relationName\":\"EdgeToWorkflowNode\"}],\"dbName\":\"edge\"},\"Node\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"nodeid\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"type\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"data\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"position\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"style\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"run\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"workflowNodeId\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"workflow\",\"kind\":\"object\",\"type\":\"WorkflowNode\",\"relationName\":\"NodeToWorkflowNode\"}],\"dbName\":\"node\"}},\"enums\":{},\"types\":{}}")
 defineDmmfProperty(exports.Prisma, config.runtimeDataModel)
 config.engineWasm = {
   getRuntime: async () => require('./query_engine_bg.js'),

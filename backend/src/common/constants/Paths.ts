@@ -8,4 +8,12 @@ export default {
     Update: '/update',
     Delete: '/delete/:id',
   },
+  Workflows: {
+    Base: '/workflows',
+    Get: '/:id',
+    Add: '/',
+    Update: '/:id',
+    Delete: '/:id',
+    GetAll: '/',
+  },
 } as const;

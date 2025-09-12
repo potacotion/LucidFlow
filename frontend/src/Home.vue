@@ -81,7 +81,20 @@ const nodes = ref<Node[]>([
 ])
 
 
-const edges = ref<Edge[]>([])
+const edges = ref<Edge[]>([
+  {
+    id: 'e1-2',
+    source: '1',
+    target: '2',
+    sourceHandle: 'out-out1',
+    targetHandle: 'in-out1',
+    style: {
+      stroke: stringToColor('out1').hsl,
+      strokeWidth: 2.5,
+    },
+    animated: true,
+  },
+])
 
 
 import Sidebar from './components/Sidebar.vue';
