@@ -5,8 +5,8 @@
     "lib": ["ES2020"],                   
     "strict": true,
     "baseUrl": "./",
-    "esModuleInterop": true,                 
-    "skipLibCheck": true,                     
+    "esModuleInterop": true,
+    "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "paths": {
       "@src/*": ["src/*"]

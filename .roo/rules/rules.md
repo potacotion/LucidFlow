@@ -46,6 +46,7 @@
 3. **注册路由** → `backend/src/routes/index.ts`
 4. **创建 service** → `backend/src/services/UserService.ts`
 5. **定义业务使用模型类型** → `backend/src/models/UserDto.ts`
+6. **添加 Swagger JSDoc 注释** → 在路由文件和相关模型接口上添加 Swagger JSDoc 注释，确保 API 文档的生成。
 
 
 #### ✅ 数据库变更流程

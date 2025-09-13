@@ -2,6 +2,7 @@ import logger from 'jet-logger';
 
 import ENV from '@src/common/constants/ENV';
 import server from './server';
+import { setupSwagger } from '../config/swagger';
 
 
 /******************************************************************************
@@ -16,6 +17,9 @@ const SERVER_START_MSG = (
 /******************************************************************************
                                   Run
 ******************************************************************************/
+
+// Setup Swagger UI
+setupSwagger(server);
 
 // Start the server
 server.listen(ENV.Port, err => {

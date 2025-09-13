@@ -1,5 +1,33 @@
 // 核心工作流节点接口 (原始定义)
-export interface WorkflowNode {  
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     WorkflowNode:
+ *       type: object
+ *       required:
+ *         - nodes
+ *         - edges
+ *       properties:
+ *         nodes:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/Node'
+ *         edges:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/Edge'
+ *         discription:
+ *           type: string
+ *           description: 工作流描述
+ *         name:
+ *           type: string
+ *           description: 工作流名称
+ *         version:
+ *           type: string
+ *           description: 工作流版本
+ */
+export interface WorkflowNode {
     nodes: Node[];
     edges: Edge[];
     discription?: string;  // 工作流描述
@@ -7,6 +35,39 @@ export interface WorkflowNode {
     version?: string;      // 工作流版本
 }
 
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     Edge:
+ *       type: object
+ *       required:
+ *         - edgeid
+ *         - source
+ *         - target
+ *         - animated
+ *       properties:
+ *         edgeid:
+ *           type: string
+ *         source:
+ *           type: string
+ *         target:
+ *           type: string
+ *         sourceHandle:
+ *           type: string
+ *           nullable: true
+ *         targetHandle:
+ *           type: string
+ *           nullable: true
+ *         label:
+ *           type: string
+ *           description: 边上的标签，纯文本即可
+ *         animated:
+ *           type: boolean
+ *         style:
+ *           type: object
+ *           description: 样式对象
+ */
 export interface Edge {
   edgeid: string;
   source: string;
@@ -15,16 +76,54 @@ export interface Edge {
   targetHandle?: string | null;
   label?: string;   // 纯文本即可
   animated: boolean;
-  style?: object;   // 样式对象  
+  style?: object;   // 样式对象
 }
 
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     Node:
+ *       type: object
+ *       required:
+ *         - nodeid
+ *         - type
+ *         - data
+ *         - position
+ *         - run
+ *       properties:
+ *         nodeid:
+ *           type: string
+ *         type:
+ *           type: string
+ *         data:
+ *           type: object
+ *           description: 节点数据，具体结构取决于节点类型
+ *         position:
+ *           type: object
+ *           properties:
+ *             x:
+ *               type: number
+ *             y:
+ *               type: number
+ *           required:
+ *             - x
+ *             - y
+ *         style:
+ *           type: object
+ *           nullable: true
+ *           description: 样式对象
+ *         run:
+ *           type: object
+ *           description: 运行相关的数据或函数
+ */
 export interface Node {
   nodeid: string;
   type: string;
   data: object;
   position: { x: number; y: number };
   style?: object|null;   // 样式对象
-  run:any; 
+  run:any;
 }
 
 export class Workflow {

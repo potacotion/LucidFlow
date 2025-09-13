@@ -8,6 +8,29 @@ const prisma = new PrismaClient();
 const router = Router();
 
 // 创建工作流
+/**
+ * @swagger
+ * /api/workflows/add:
+ *   post:
+ *     summary: 创建工作流
+ *     tags:
+ *       - Workflows
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/WorkflowNode'
+ *     responses:
+ *       201:
+ *         description: 成功创建工作流
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/WorkflowNode'
+ *       500:
+ *         description: 创建工作流失败
+ */
 router.post(Paths.Workflows.Add, async (req: Request, res: Response) => {
     try {
         const workflowData = Workflow.transformFrontendData(req.body);
@@ -33,7 +56,25 @@ router.post(Paths.Workflows.Add, async (req: Request, res: Response) => {
     }
 });
 
-// 获取所有工作流
+/**
+ * @swagger
+ * /api/workflows:
+ *   get:
+ *     summary: 获取所有工作流
+ *     tags:
+ *       - Workflows
+ *     responses:
+ *       200:
+ *         description: 成功获取工作流列表
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/WorkflowNode'
+ *       500:
+ *         description: 获取工作流失败
+ */
 router.get(Paths.Workflows.GetAll, async (req: Request, res: Response) => {
     try {
         const workflows = await prisma.workflowNode.findMany({
@@ -48,7 +89,32 @@ router.get(Paths.Workflows.GetAll, async (req: Request, res: Response) => {
     }
 });
 
-// 获取单个工作流
+/**
+ * @swagger
+ * /api/workflows/{id}:
+ *   get:
+ *     summary: 获取单个工作流
+ *     tags:
+ *       - Workflows
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: 工作流 ID
+ *     responses:
+ *       200:
+ *         description: 成功获取工作流
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/WorkflowNode'
+ *       404:
+ *         description: 工作流未找到
+ *       500:
+ *         description: 获取工作流失败
+ */
 router.get(Paths.Workflows.Get, async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
@@ -69,7 +135,36 @@ router.get(Paths.Workflows.Get, async (req: Request, res: Response) => {
     }
 });
 
-// 更新工作流
+/**
+ * @swagger
+ * /api/workflows/{id}:
+ *   put:
+ *     summary: 更新工作流
+ *     tags:
+ *       - Workflows
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: 工作流 ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/WorkflowNode'
+ *     responses:
+ *       200:
+ *         description: 成功更新工作流
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/WorkflowNode'
+ *       500:
+ *         description: 更新工作流失败
+ */
 router.put(Paths.Workflows.Update, async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
@@ -102,7 +197,26 @@ router.put(Paths.Workflows.Update, async (req: Request, res: Response) => {
     }
 });
 
-// 删除工作流
+/**
+ * @swagger
+ * /api/workflows/{id}:
+ *   delete:
+ *     summary: 删除工作流
+ *     tags:
+ *       - Workflows
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: 工作流 ID
+ *     responses:
+ *       204:
+ *         description: 成功删除工作流
+ *       500:
+ *         description: 删除工作流失败
+ */
 router.delete(Paths.Workflows.Delete, async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
@@ -115,7 +229,39 @@ router.delete(Paths.Workflows.Delete, async (req: Request, res: Response) => {
     }
 });
 
-// 执行工作流
+/**
+ * @swagger
+ * /api/workflows/{id}/run:
+ *   post:
+ *     summary: 执行工作流
+ *     tags:
+ *       - Workflows
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: 工作流 ID
+ *     responses:
+ *       200:
+ *         description: 工作流执行成功
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Workflow executed successfully
+ *                 results:
+ *                   type: object
+ *                   description: 工作流执行结果
+ *       404:
+ *         description: 工作流未找到
+ *       500:
+ *         description: 执行工作流失败
+ */
 router.post(Paths.Workflows.Run, async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
