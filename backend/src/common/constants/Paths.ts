@@ -15,5 +15,6 @@ export default {
     Update: '/:id',
     Delete: '/:id',
     GetAll: '/',
+    Run: '/:id/run',
   },
 } as const;

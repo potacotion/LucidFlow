@@ -1,7 +1,8 @@
 import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
-import { Workflow } from '@src/models/workflow'; // 确保路径正确
+import { Workflow, WorkflowNode } from '@src/models/workflow'; // 确保路径正确
 import Paths from '@src/common/constants/Paths';
+import { DagEngine } from '@src/services/DagEngine';
 
 const prisma = new PrismaClient();
 const router = Router();
@@ -113,5 +114,38 @@ router.delete(Paths.Workflows.Delete, async (req: Request, res: Response) => {
         res.status(500).json({ error: 'Failed to delete workflow' });
     }
 });
+
+// 执行工作流
+router.post(Paths.Workflows.Run, async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const workflow = await prisma.workflowNode.findUnique({
+            where: { id: parseInt(id, 10) },
+            include: {
+                nodes: true,
+                edges: true,
+            },
+        });
+
+        if (!workflow) {
+            return res.status(404).json({ error: 'Workflow not found' });
+        }
+
+        const engine = new DagEngine(workflow as unknown as WorkflowNode);
+        const results = await engine.run();
+
+        // The results are a Map, so we need to convert it to a plain object for the JSON response.
+        const resultsObject = Object.fromEntries(results);
+
+        res.json({
+            message: 'Workflow executed successfully',
+            results: resultsObject,
+        });
+    } catch (error) {
+        console.error('Workflow execution error:', error);
+        res.status(500).json({ error: `Failed to execute workflow: ${(error as Error).message}` });
+    }
+});
+
 
 export default router;
