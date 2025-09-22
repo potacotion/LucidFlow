@@ -6,7 +6,6 @@
 
 generator client {
   provider = "prisma-client-js"
-  
 }
 
 datasource db {
@@ -14,54 +13,33 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// 核心工作流表
-model WorkflowNode {
-  id          Int      @id @default(autoincrement())
-  discription String?  // 保持接口拼写
-  name        String?
-  version     String?
-  createdAt   DateTime @default(now()) @map("createdAt")
-  updatedAt   DateTime @updatedAt @map("updatedAt")
+// User model
+model User {
+  id    Int     @id @default(autoincrement())
+  name  String
+  email String  @unique
+  pwdHash String
+  role  UserRoles @default(Standard)
 
-  // 一对多
-  nodes Node[]
-  edges Edge[]
-
-  @@map("workflownode")
+  @@map("users")
 }
 
-// 边表
-model Edge {
-  id             Int      @id @default(autoincrement())
-  edgeid         String // 前端 id，不唯一
-  source         String
-  target         String
-  sourceHandle   String?
-  targetHandle   String?
-  label          String?
-  animated       Boolean
-  style          Json? // JSON 对象
-  workflowNodeId Int
-  workflow       WorkflowNode @relation(fields: [workflowNodeId], references: [id], onDelete: Cascade)
-
-  // 复合唯一：同一工作流下 edgeid 唯一
-  @@unique([workflowNodeId, edgeid])
-  @@map("edge")
+enum UserRoles {
+  Standard
+  Admin
 }
+// 工作流表
+// 整个工作流的结构，包括节点和边，都存储在'data'字段中
+model Workflow {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  
+  // 将整个 WorkflowData 对象（包括节点和边）序列化为 JSON 存储
+  data        Json
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-// 节点表
-model Node {
-  id             Int      @id @default(autoincrement())
-  nodeid         String // 前端 id，不唯一
-  type           String
-  data           Json // JSON 对象
-  position       Json // {x,y} 对象
-  style          Json? // JSON 对象
-  run            Json // JSON 对象
-  workflowNodeId Int
-  workflow       WorkflowNode @relation(fields: [workflowNodeId], references: [id], onDelete: Cascade)
-
-  // 复合唯一：同一工作流下 nodeid 唯一
-  @@unique([workflowNodeId, nodeid])
-  @@map("node")
+  @@map("workflows")
 }
