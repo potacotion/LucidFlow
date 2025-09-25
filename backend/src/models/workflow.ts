@@ -27,9 +27,29 @@ export type NodeDefinition = {
 
   /** 按顺序定义节点的所有输入/输出端口 */
   ports: PortDefinition[];
+
   /** 定义节点的可配置属性，UI将据此生成配置面板。*/
   properties?: PropertyDefinition[];
+
+  /**
+   * [核心] 节点的执行函数，在沙箱环境中执行节点的核心逻辑
+   */
+  run: (params: {
+    input: { [portName: string]: any };
+    params: { [propertyName: string]: any };
+    logger: Logger;
+  }) => Promise<{ [portName: string]: any }>;
 };
+
+/**
+ * 日志记录器接口
+ */
+export interface Logger {
+  info(message: string, ...args: any[]): void;
+  warn(message: string, ...args: any[]): void;
+  error(message: string, ...args: any[]): void;
+  debug(message: string, ...args: any[]): void;
+}
 
 /**
  * 定义 NodeDefinition 上的单个输入或输出端口。
@@ -157,6 +177,14 @@ export type Edge = {
   };
 };
 
+/**
+ * 表示一个包含节点和边的图结构。
+ */
+export type Graph = {
+  nodes: NodeInstance[];
+  edges: Edge[];
+};
+
 export interface NodeInstance {
   /**
    * 在整个工作流中全局唯一的ID，e.g., "node_1a2b3c"
@@ -178,20 +206,19 @@ export interface NodeInstance {
    */
   position: { x: number; y: number };
 
-   /**
-   * 存储所有用户配置的值，包括模型选择、循环设置等。
+  /**
+   * 存储所有用户配置的值。
    * key 对应 PropertyDefinition.name。
+   * - 对于 'compound' 节点, 此处可存放端口映射 (portMappings)。
+   *   e.g., { "portMappings": { "inputs": [...], "outputs": [...] } }
    */
   propertyValues?: { [propertyName: string]: any };
 
   /**
-   * [统一] 存放子图（或循环体）的定义。
-   * - 对于 'compound' 节点, 它代表被封装的子图。
-   * - 对于 'loop' 节点, 它代表循环体 (Loop Body)。
+   * [核心] 存放子图（或循环体）的定义。
+   * - 对于 'compound' 节点, 它代表被封装的子图。其与外部的接口通过 `propertyValues` 中的 `portMappings` 定义。
+   * - 对于 'loop' 节点, 它代表循环体。循环变量 (item, index) 由引擎在运行时注入上下文，子图内节点可通过表达式 (e.g., `{{context.loop.item}}`) 访问。
    * - 对于其他节点, 此属性为 null 或 undefined。
    */
-  subgraph?: {
-    nodes: NodeInstance[];
-    edges: Edge[];
-  };
+  subgraph?: Graph;
 }

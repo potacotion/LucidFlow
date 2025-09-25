@@ -7,6 +7,21 @@ export const NODE_DEFINITIONS = new Map<string, NodeDefinition>([
     // =========================================================================
     // 基础数学节点
     // =========================================================================
+    ['data/constant', {
+        type: 'data/constant',
+        label: '常量',
+        description: '输出一个在属性中定义的固定值',
+        archetype: 'pure',
+        ports: [
+            { name: 'value', label: '值', type: 'data', direction: 'out', dataType: 'any' },
+        ],
+        properties: [
+            { name: 'value', label: '值', type: 'string', defaultValue: '' }
+        ],
+        run: async ({ params }) => {
+            return { value: params.value };
+        },
+    }],
     ['math/add', {
         type: 'math/add',
         label: '加法',
@@ -17,6 +32,11 @@ export const NODE_DEFINITIONS = new Map<string, NodeDefinition>([
             { name: 'b', label: 'B', type: 'data', direction: 'in', dataType: 'number', defaultValue: 0 },
             { name: 'result', label: '结果', type: 'data', direction: 'out', dataType: 'number' },
         ],
+        run: async ({ input }) => {
+            const a = input.a ?? 0;
+            const b = input.b ?? 0;
+            return { result: a + b };
+        },
     }],
     ['math/subtract', {
         type: 'math/subtract',
@@ -28,6 +48,11 @@ export const NODE_DEFINITIONS = new Map<string, NodeDefinition>([
             { name: 'b', label: 'B', type: 'data', direction: 'in', dataType: 'number', defaultValue: 0 },
             { name: 'result', label: '结果', type: 'data', direction: 'out', dataType: 'number' },
         ],
+        run: async ({ input }) => {
+            const a = input.a ?? 0;
+            const b = input.b ?? 0;
+            return { result: a - b };
+        },
     }],
 
     // =========================================================================
@@ -41,6 +66,7 @@ export const NODE_DEFINITIONS = new Map<string, NodeDefinition>([
         ports: [
             { name: 'start', label: '执行', type: 'control', direction: 'out' },
         ],
+        run: async () => ({}),
     }],
     
     // Note: 'special_LoopIterator' is an internal concept.
@@ -55,6 +81,7 @@ export const NODE_DEFINITIONS = new Map<string, NodeDefinition>([
             { name: 'item', label: '当前项', type: 'data', direction: 'out', dataType: 'any' },
             { name: 'index', label: '当前索引', type: 'data', direction: 'out', dataType: 'number' },
         ],
+        run: async () => ({ item: null, index: -1 }), // Placeholder
     }],
 
     // =========================================================================
@@ -71,6 +98,7 @@ export const NODE_DEFINITIONS = new Map<string, NodeDefinition>([
             // A loop node might have a final collected output.
             { name: 'collected', label: '收集的结果', type: 'data', direction: 'out', dataType: 'array' },
         ],
+        run: async () => ({ collected: [] }), // Placeholder
     }],
 
     ['control/compound', {
@@ -86,6 +114,7 @@ export const NODE_DEFINITIONS = new Map<string, NodeDefinition>([
             { name: 'input1', label: '输入1', type: 'data', direction: 'in', dataType: 'any' },
             { name: 'output1', label: '输出1', type: 'data', direction: 'out', dataType: 'any' },
         ],
+        run: async () => ({}), // Placeholder
     }],
 
     // =========================================================================
@@ -100,7 +129,8 @@ export const NODE_DEFINITIONS = new Map<string, NodeDefinition>([
             { name: 'in_1', label: 'In 1', type: 'control', direction: 'in' },
             { name: 'in_2', label: 'In 2', type: 'control', direction: 'in' },
             { name: 'out', label: 'Out', type: 'control', direction: 'out' },
-        ]
+        ],
+        run: async () => ({}),
     }],
     
     // =========================================================================
@@ -123,7 +153,8 @@ export const NODE_DEFINITIONS = new Map<string, NodeDefinition>([
               type: 'string',
               defaultValue: ''
             }
-        ]
+        ],
+        run: async () => ({}), // Placeholder
     }],
     ['graph/output', {
         type: 'graph/output',
@@ -141,6 +172,156 @@ export const NODE_DEFINITIONS = new Map<string, NodeDefinition>([
               type: 'string',
               defaultValue: ''
             }
-        ]
+        ],
+        run: async () => ({}), // Placeholder
+    }],
+    // =========================================================================
+    // 流程控制节点
+    // =========================================================================
+    ['control/branch', {
+        type: 'control/branch',
+        label: '分支',
+        description: '根据条件选择执行路径',
+        archetype: 'branch',
+        ports: [
+            { name: 'condition', label: '条件', type: 'data', direction: 'in', dataType: 'boolean' },
+            { name: 'true', label: 'True', type: 'control', direction: 'out' },
+            { name: 'false', label: 'False', type: 'control', direction: 'out' },
+        ],
+        run: async () => ({}),
+    }],
+    ['control/fork', {
+        type: 'control/fork',
+        label: '并行',
+        description: '将单一控制流拆分为多个并行流',
+        archetype: 'fork',
+        ports: [
+            { name: 'in', label: 'In', type: 'control', direction: 'in' },
+            { name: 'out_1', label: 'Out 1', type: 'control', direction: 'out' },
+            { name: 'out_2', label: 'Out 2', type: 'control', direction: 'out' },
+        ],
+        run: async () => ({}),
+    }],
+
+    // =========================================================================
+    // 比较与逻辑运算
+    // =========================================================================
+    ['compare/gte', {
+        type: 'compare/gte',
+        label: '大于或等于 (>=)',
+        description: '比较 a 是否大于或等于 b',
+        archetype: 'pure',
+        ports: [
+            { name: 'a', label: 'A', type: 'data', direction: 'in', dataType: 'number' },
+            { name: 'b', label: 'B', type: 'data', direction: 'in', dataType: 'number' },
+            { name: 'result', label: '结果', type: 'data', direction: 'out', dataType: 'boolean' },
+        ],
+        properties: [
+            { name: 'b', label: 'B', type: 'number', defaultValue: 0 }
+        ],
+        run: async ({ input, params }) => {
+            const valA = Number(input.a ?? 0);
+            const valB = Number(input.b !== undefined ? input.b : params.b);
+            return { result: valA >= valB };
+        },
+    }],
+    ['logic/and', {
+        type: 'logic/and',
+        label: '逻辑与 (AND)',
+        description: '对两个布尔输入执行逻辑与操作',
+        archetype: 'pure',
+        ports: [
+            { name: 'a', label: 'A', type: 'data', direction: 'in', dataType: 'boolean' },
+            { name: 'b', label: 'B', type: 'data', direction: 'in', dataType: 'boolean' },
+            { name: 'result', label: '结果', type: 'data', direction: 'out', dataType: 'boolean' },
+        ],
+        run: async ({ input }) => {
+            return { result: !!input.a && !!input.b };
+        },
+    }],
+
+    // =========================================================================
+    // 订单审核流程测试
+    // =========================================================================
+    ['test/inputOrder', {
+        type: 'test/inputOrder',
+        label: '输入订单',
+        description: '模拟输入订单信息，输出金额',
+        archetype: 'action',
+        ports: [
+            { name: 'control', label: 'Control', type: 'control', direction: 'out' },
+            { name: 'amount', label: '金额', type: 'data', direction: 'out', dataType: 'number' },
+        ],
+        properties: [
+            { name: 'amount', label: '金额', type: 'number', defaultValue: 100 }
+        ],
+        run: async ({ params }) => {
+            return { amount: params.amount };
+        },
+    }],
+    ['test/financeApproval', {
+        type: 'test/financeApproval',
+        label: '财务审批',
+        description: '模拟财务审批，输出是否通过',
+        archetype: 'action',
+        ports: [
+            { name: 'control', label: 'Control', type: 'control', direction: 'out' },
+            { name: 'approved', label: '是否通过', type: 'data', direction: 'out', dataType: 'boolean' },
+        ],
+        properties: [
+            { name: 'shouldApprove', label: '是否应通过', type: 'boolean', defaultValue: true }
+        ],
+        run: async ({ params }) => {
+            return { approved: params.shouldApprove };
+        },
+    }],
+    ['test/managerApproval', {
+        type: 'test/managerApproval',
+        label: '经理审批',
+        description: '模拟经理审批，输出是否通过',
+        archetype: 'action',
+        ports: [
+            { name: 'control', label: 'Control', type: 'control', direction: 'out' },
+            { name: 'approved', label: '是否通过', type: 'data', direction: 'out', dataType: 'boolean' },
+        ],
+        properties: [
+            { name: 'shouldApprove', label: '是否应通过', type: 'boolean', defaultValue: true }
+        ],
+        run: async ({ params }) => {
+            return { approved: params.shouldApprove };
+        },
+    }],
+    ['test/shipOrder', {
+        type: 'test/shipOrder',
+        label: '发货',
+        description: '模拟发货动作',
+        archetype: 'action',
+        ports: [
+            { name: 'in', label: 'In', type: 'control', direction: 'in' },
+            { name: 'status', label: '状态', type: 'data', direction: 'out', dataType: 'string' },
+        ],
+        properties: [
+            { name: 'orderType', label: '订单类型', type: 'string', defaultValue: 'small' }
+        ],
+        run: async ({ params }) => {
+            const status = `Shipped ${params.orderType} order`;
+            console.log(status);
+            return { status };
+        },
+    }],
+    ['test/rejectOrder', {
+        type: 'test/rejectOrder',
+        label: '拒绝订单',
+        description: '模拟拒绝订单动作',
+        archetype: 'action',
+        ports: [
+            { name: 'in', label: 'In', type: 'control', direction: 'in' },
+            { name: 'status', label: '状态', type: 'data', direction: 'out', dataType: 'string' },
+        ],
+        run: async () => {
+            const status = 'Order Rejected';
+            console.log(status);
+            return { status };
+        },
     }],
 ]);

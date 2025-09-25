@@ -1,4 +1,5 @@
 import { NodeInstance, Edge, NodeDefinition, StreamPacket, PortDefinition } from '@src/models/workflow';
+import { executeNodeLogic } from './NodeExecutor';
 import { NODE_DEFINITIONS } from './node-definitions';
 
 function getNodeDefinition(nodeType: string): NodeDefinition {
@@ -64,9 +65,21 @@ export class SignalDrivenEngine {
     this.graphWalker = new GraphWalker(graph.nodes, graph.edges);
 
     // Initialization: Find start nodes and enqueue the first signals
-    const startNodes = graph.nodes.filter(n => {
-      const def = getNodeDefinition(n.type);
-      return def.archetype === 'action'; // Simplified: assume 'action' nodes with no control inputs are start nodes
+    const startNodes = graph.nodes.filter(node => {
+        const def = getNodeDefinition(node.type);
+        if (def.archetype !== 'action') {
+            return false;
+        }
+        // An action node is a start node if none of its control input ports are connected.
+        const controlInputPorts = def.ports.filter(p => p.type === 'control' && p.direction === 'in');
+        if (controlInputPorts.length === 0) {
+            // If it has no control inputs defined, it could be a start node.
+            return true;
+        }
+        const isAnyControlInputConnected = controlInputPorts.some(p =>
+            this.graphWalker.findUpstreamEdge(node.id, p.name)
+        );
+        return !isAnyControlInputConnected;
     });
 
     for (const startNode of startNodes) {
@@ -99,16 +112,13 @@ export class SignalDrivenEngine {
   private enqueueDownstreamControlSignals(node: NodeInstance, fromPortName?: string) {
     const def = getNodeDefinition(node.type);
     const controlOutPorts = fromPortName
-      ? [def.ports.find((p: PortDefinition) => p.name === fromPortName)]
+      ? def.ports.filter((p: PortDefinition) => p.name === fromPortName && p.type === 'control' && p.direction === 'out')
       : def.ports.filter((p: PortDefinition) => p.type === 'control' && p.direction === 'out');
 
     for (const port of controlOutPorts) {
-      if (port) {
-        const downstreamNodes = this.graphWalker.findDownstreamNodes(node.id, port.name);
-        for (const downstreamNode of downstreamNodes) {
-          // Assuming the edge connects to a control in port with the same name, which is a simplification
-          this.enqueueSignal(downstreamNode.id, port.name); 
-        }
+      const edges = this.graphWalker['edges'].filter(e => e.source.nodeId === node.id && e.source.portName === port.name);
+      for (const edge of edges) {
+        this.enqueueSignal(edge.target.nodeId, edge.target.portName);
       }
     }
   }
@@ -148,7 +158,7 @@ export class SignalDrivenEngine {
   
     const inputsForPureNode = await this.resolveAllInputs(sourceNode);
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const outputs: NodeOutput = {}; // await runNodeLogic(sourceNode, inputsForPureNode);
+    const outputs: NodeOutput = await executeNodeLogic(sourceNode, inputsForPureNode);
   
     this.resultsCache.set(sourceNodeId, outputs);
     return outputs[sourcePortName];
@@ -159,18 +169,26 @@ export class SignalDrivenEngine {
     const inputs = await this.resolveAllInputs(node);
 
     switch (definition.archetype) {
-      case 'action':
-      case 'pure': {
-        // const outputs = await runNodeLogic(node, inputs);
-        const outputs = {}; // Placeholder
+      case 'action':{
+        const outputs = await executeNodeLogic(node, inputs);
         this.resultsCache.set(node.id, outputs);
         this.enqueueDownstreamControlSignals(node);
         break;
       }
+      case 'pure': {
+        const outputs = await executeNodeLogic(node, inputs);
+        this.resultsCache.set(node.id, outputs);
+                //this.enqueueDownstreamControlSignals(node);
+        // 关键修复：纯节点(Pure Node)不应该触发控制流。
+        // 它们只应该在数据被下游节点需要时被动执行并返回结果。
+
+        break;
+      }
       case 'branch': {
         const condition = inputs['condition'];
-        const portToFire = condition ? 'truePath' : 'falsePath';
-        this.enqueueSignal(node.id, portToFire);
+        const portToFire = condition ? 'true' : 'false';
+        // The logic is now correctly handled by the improved enqueueDownstreamControlSignals
+        this.enqueueDownstreamControlSignals(node, portToFire);
         break;
       }
       case 'merge': {
@@ -199,15 +217,21 @@ export class SignalDrivenEngine {
       }
       case 'loop': {
         // const arrayToIterate = inputs[node.propertyValues.iteratorInputName];
-        // for (const item of arrayToIterate) {
-        //   await this.run(node.subgraph, { context: { item } });
+        // if (node.subgraph) {
+        //   for (const item of arrayToIterate) {
+        //     const loopEngine = new SignalDrivenEngine();
+        //     // await loopEngine.run(node.subgraph, { context: { item } });
+        //   }
         // }
         this.enqueueDownstreamControlSignals(node, 'loopCompleted');
         break;
       }
       case 'compound': {
-        // const subgraphOutputs = await this.run(node.subgraph, { inputs });
-        // this.resultsCache.set(node.id, subgraphOutputs);
+        // if (node.subgraph) {
+        //   const subgraphEngine = new SignalDrivenEngine();
+        //   // const subgraphOutputs = await subgraphEngine.run(node.subgraph, { inputs });
+        //   // this.resultsCache.set(node.id, subgraphOutputs);
+        // }
         this.enqueueDownstreamControlSignals(node);
         break;
       }
