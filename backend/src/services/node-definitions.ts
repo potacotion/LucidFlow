@@ -94,11 +94,25 @@ export const NODE_DEFINITIONS = new Map<string, NodeDefinition>([
         archetype: 'loop',
         ports: [
             { name: 'array', label: '数组', type: 'data', direction: 'in', dataType: 'array' },
-            // Loop outputs are defined by connecting subgraph nodes to a 'graph/output' proxy node.
-            // A loop node might have a final collected output.
+            // 循环的输出由子图内部连接到'graph/output'代理节点的节点定义。
+            // 循环节点本身也可以有一个最终的“收集”输出。
             { name: 'collected', label: '收集的结果', type: 'data', direction: 'out', dataType: 'array' },
+             { name: 'loopCompleted', label: '循环完成', type: 'control', direction: 'out' },
         ],
         run: async () => ({ collected: [] }), // Placeholder
+    }],
+
+    ['control/while', {
+        type: 'control/while',
+        label: '条件循环 (While)',
+        description: '当条件为真时重复执行子图',
+        archetype: 'loop',
+        ports: [
+            // While 循环没有 forEach 那样的数组输入，它的条件在子图内部计算。
+            // 子图必须有一个名为 'loopCondition' 的布尔输出。
+            { name: 'loopCompleted', label: '循环完成', type: 'control', direction: 'out' },
+        ],
+        run: async () => ({}), // Placeholder
     }],
 
     ['control/compound', {
@@ -106,11 +120,14 @@ export const NODE_DEFINITIONS = new Map<string, NodeDefinition>([
         label: '复合节点',
         description: '这是一个可以包含子图的节点',
         archetype: 'compound',
-        // Compound node ports are defined dynamically by the user in the UI.
-        // The definition itself only needs to declare its archetype.
-        // The actual ports are part of the NodeInstance's subgraph via graph/input and graph/output nodes.
+        // 复合节点的端口由用户在UI中动态定义。
+        // 此定义仅需声明其原型。
+        // 实际的端口是通过 NodeInstance 的 subgraph 属性，使用 'graph/input' 和 'graph/output' 节点来实现的。
         ports: [
-            // Example ports that a user might define.
+            // 控制端口
+            { name: 'in', label: 'In', type: 'control', direction: 'in' },
+            { name: 'out', label: 'Out', type: 'control', direction: 'out' },
+            // 用户可能定义的示例端口。
             { name: 'input1', label: '输入1', type: 'data', direction: 'in', dataType: 'any' },
             { name: 'output1', label: '输出1', type: 'data', direction: 'out', dataType: 'any' },
         ],
@@ -139,11 +156,11 @@ export const NODE_DEFINITIONS = new Map<string, NodeDefinition>([
     ['graph/input', {
         type: 'graph/input',
         label: 'Graph Input',
-        description: 'Represents an input port of a parent compound node.',
-        archetype: 'pure', // Acts as a data source within the subgraph
+        description: '代表父级复合节点的一个输入端口。',
+        archetype: 'pure', // 在子图内部充当数据源
         ports: [
-            // Ports are dynamically determined by the parent's definition
-            // but a generic output is needed for connecting inside the subgraph.
+            // 端口由父节点的定义动态确定，
+            // 但需要一个通用输出以便在子图内部连接。
             { name: 'output', label: 'Output', type: 'data', direction: 'out', dataType: 'any' }
         ],
         properties: [
@@ -159,10 +176,10 @@ export const NODE_DEFINITIONS = new Map<string, NodeDefinition>([
     ['graph/output', {
         type: 'graph/output',
         label: 'Graph Output',
-        description: 'Represents an output port of a parent compound node.',
-        archetype: 'pure', // Acts as a data sink within the subgraph
+        description: '代表父级复合节点的一个输出端口。',
+        archetype: 'pure', // 在子图内部充当数据接收器
         ports: [
-            // A generic input is needed for connecting inside the subgraph.
+            // 需要一个通用输入以便在子图内部连接。
             { name: 'input', label: 'Input', type: 'data', direction: 'in', dataType: 'any' }
         ],
         properties: [

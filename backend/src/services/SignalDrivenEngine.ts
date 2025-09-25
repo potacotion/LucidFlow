@@ -58,11 +58,20 @@ export class SignalDrivenEngine {
   // private activeStreams: Map<string, any> = new Map(); // Placeholder for stream management
   private graphWalker!: GraphWalker;
 
-  public async run(graph: { nodes: NodeInstance[], edges: Edge[] }) {
+  public async run(graph: { nodes: NodeInstance[], edges: Edge[] }, context?: any): Promise<NodeOutput | void> {
     this.executionQueue = [];
     this.resultsCache.clear();
     this.activeJoins.clear();
     this.graphWalker = new GraphWalker(graph.nodes, graph.edges);
+
+    // If context is provided, we can populate it for expression resolution
+    // For now, let's assume a simple case where we can prime the results cache
+    if (context) {
+        // e.g. for a loop, the context might be { item: ..., index: ... }
+        // We can expose this via a special "context" node result.
+        this.resultsCache.set('context', context);
+    }
+
 
     // Initialization: Find start nodes and enqueue the first signals
     const startNodes = graph.nodes.filter(node => {
@@ -91,6 +100,19 @@ export class SignalDrivenEngine {
     }
 
     await this.loop();
+
+    // After the loop, find 'graph/output' nodes to determine the graph's final output.
+    const outputNodes = graph.nodes.filter(n => n.type === 'graph/output');
+    const graphResult: NodeOutput = {};
+    for (const outNode of outputNodes) {
+        const portName = outNode.propertyValues?.['parentPortName'];
+        if (portName) {
+            // The value for the output comes from the node connected to the output proxy's input.
+            const finalValue = await this.resolveInputData(outNode, 'input');
+            graphResult[portName] = finalValue;
+        }
+    }
+    return graphResult;
   }
 
   private async loop() {
@@ -134,7 +156,23 @@ export class SignalDrivenEngine {
     return inputs;
   }
   
-  private async resolveInputData(targetNode: NodeInstance, targetPortName: string): Promise<any> {
+  private async resolveInputData(targetNode: NodeInstance, targetPortName:string): Promise<any> {
+    // Expression resolution (e.g., {{loop.item}}) could happen here.
+    // For now, let's handle direct context injection for loop variables.
+    const context = this.resultsCache.get('context') as any;
+    if (context?.loop && (targetPortName === 'item' || targetPortName === 'index')) {
+        return context.loop[targetPortName];
+    }
+    
+    // Handle graph inputs for compound nodes
+    const targetNodeDef = getNodeDefinition(targetNode.type);
+    if (targetNodeDef.type === 'graph/input') {
+        const parentPortName = targetNode.propertyValues?.['parentPortName'];
+        if (context?.inputs && parentPortName && context.inputs[parentPortName] !== undefined) {
+            return context.inputs[parentPortName];
+        }
+    }
+
     const edge = this.graphWalker.findUpstreamEdge(targetNode.id, targetPortName);
     if (!edge) {
       const portDef = getNodeDefinition(targetNode.type).ports.find((p: PortDefinition) => p.name === targetPortName);
@@ -152,6 +190,20 @@ export class SignalDrivenEngine {
     if (!sourceNode) throw new Error(`Source node ${sourceNodeId} not found.`);
   
     const sourceNodeDef = getNodeDefinition(sourceNode.type);
+
+    // Special handling for 'graph/input' nodes: they source their data from the parent context.
+    if (sourceNodeDef.type === 'graph/input') {
+        const context = this.resultsCache.get('context') as any;
+        const parentPortName = sourceNode.propertyValues?.['parentPortName'];
+        if (context?.inputs && parentPortName && context.inputs[parentPortName] !== undefined) {
+            const value = context.inputs[parentPortName];
+            // Cache the result as if the node "executed" and produced this value.
+            this.resultsCache.set(sourceNodeId, { [sourcePortName]: value });
+            return value;
+        }
+        return undefined; // If no value in context, it produces nothing.
+    }
+
     if (sourceNodeDef.archetype !== 'pure') {
       throw new Error(`Execution error: Action node ${sourceNodeId} was not executed before its output was needed.`);
     }
@@ -216,22 +268,57 @@ export class SignalDrivenEngine {
         break;
       }
       case 'loop': {
-        // const arrayToIterate = inputs[node.propertyValues.iteratorInputName];
-        // if (node.subgraph) {
-        //   for (const item of arrayToIterate) {
-        //     const loopEngine = new SignalDrivenEngine();
-        //     // await loopEngine.run(node.subgraph, { context: { item } });
-        //   }
-        // }
+        const arrayToIterate = inputs['array'];
+
+        if (arrayToIterate) { // For-Each behavior
+            if (node.subgraph) {
+                for (let i = 0; i < arrayToIterate.length; i++) {
+                    const item = arrayToIterate[i];
+                    const loopEngine = new SignalDrivenEngine();
+                    await loopEngine.run(node.subgraph, { loop: { item, index: i } });
+                }
+            }
+        } else { // While-like behavior
+            if (node.subgraph) {
+                let iteration = 0;
+                // eslint-disable-next-line no-constant-condition
+                while (true) {
+                    const loopEngine = new SignalDrivenEngine();
+                    // We need a way to evaluate the condition *within* the subgraph's context.
+                    // This implies the subgraph needs an output that we can check.
+                    // Let's assume a special output port named 'loopCondition'.
+                    const context = { loop: { index: iteration } };
+                    const subgraphResult = await loopEngine.run(node.subgraph, context);
+
+                    // Convention: Subgraph must have a node connected to a 'graph/output'
+                    // proxy node with the 'parentPortName' property set to 'loopCondition'.
+                    const condition = subgraphResult ? subgraphResult['loopCondition'] : false;
+                    
+                    if (!condition) {
+                        break; // Exit loop if condition is false or not present
+                    }
+                    iteration++;
+                    
+                    if (iteration > 1000) { // Safety break
+                        console.warn('Loop safety break triggered after 1000 iterations.');
+                        break;
+                    }
+                }
+            }
+        }
+
         this.enqueueDownstreamControlSignals(node, 'loopCompleted');
         break;
       }
       case 'compound': {
-        // if (node.subgraph) {
-        //   const subgraphEngine = new SignalDrivenEngine();
-        //   // const subgraphOutputs = await subgraphEngine.run(node.subgraph, { inputs });
-        //   // this.resultsCache.set(node.id, subgraphOutputs);
-        // }
+        if (node.subgraph) {
+          const subgraphEngine = new SignalDrivenEngine();
+          // Pass the parent node's inputs down to the subgraph context.
+          const subgraphOutputs = await subgraphEngine.run(node.subgraph, { inputs });
+          if (subgraphOutputs) {
+            this.resultsCache.set(node.id, subgraphOutputs);
+          }
+        }
         this.enqueueDownstreamControlSignals(node);
         break;
       }
