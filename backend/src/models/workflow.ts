@@ -222,3 +222,12 @@ export interface NodeInstance {
    */
   subgraph?: Graph;
 }
+/**
+ * 表示一个完整的工作流，包含元数据和图结构。
+ */
+export type Workflow = {
+  id: string;
+  name: string;
+  description?: string;
+  graph: Graph;
+};

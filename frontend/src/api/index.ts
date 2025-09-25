@@ -7,8 +7,11 @@ export { CancelablePromise, CancelError } from './core/CancelablePromise';
 export { OpenAPI } from './core/OpenAPI';
 export type { OpenAPIConfig } from './core/OpenAPI';
 
-export type { Edge } from './models/Edge';
-export type { Node } from './models/Node';
-export type { WorkflowNode } from './models/WorkflowNode';
+export type { Graph } from './models/Graph';
+export { NodeDefinition } from './models/NodeDefinition';
+export { PortDefinition } from './models/PortDefinition';
+export { PropertyDefinition } from './models/PropertyDefinition';
+export type { Workflow } from './models/Workflow';
 
+export { NodeDefinitionsService } from './services/NodeDefinitionsService';
 export { WorkflowsService } from './services/WorkflowsService';

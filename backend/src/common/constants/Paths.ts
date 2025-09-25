@@ -17,4 +17,8 @@ export default {
     GetAll: '/',
     Run: '/:id/run',
   },
+  NodeDefinitions: {
+    Base: '/node-definitions',
+    GetAll: '/',
+  },
 } as const;

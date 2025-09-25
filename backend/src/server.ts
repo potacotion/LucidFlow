@@ -3,6 +3,7 @@ import path from 'path';
 import helmet from 'helmet';
 import express, { Request, Response, NextFunction } from 'express';
 import logger from 'jet-logger';
+import cors from 'cors';
 
 import BaseRouter from '@src/routes';
 
@@ -14,7 +15,7 @@ import { NodeEnvs } from '@src/common/constants';
 
 
 /******************************************************************************
-                                Setup
+                                 Setup
 ******************************************************************************/
 
 const app = express();
@@ -25,6 +26,7 @@ const app = express();
 // Basic middleware
 app.use(express.json());
 app.use(express.urlencoded({extended: true}));
+app.use(cors());
 
 // Show routes called in console during development
 if (ENV.NodeEnv === NodeEnvs.Dev) {
@@ -78,7 +80,7 @@ app.get('/users', (_: Request, res: Response) => {
 
 
 /******************************************************************************
-                                Export default
+                                 Export default
 ******************************************************************************/
 
 export default app;

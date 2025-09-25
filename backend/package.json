@@ -24,7 +24,9 @@
   },
   "dependencies": {
     "@prisma/client": "^6.16.1",
+    "@types/cors": "^2.8.19",
     "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
     "dayjs": "^1.11.18",
     "dotenv": "^17.2.2",
     "express": "^5.1.0",
