@@ -1,0 +1,35 @@
+@import './base/_tokens.css';
+@import './themes/_light.css';
+@import './themes/_dark.css';
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+    'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
+    'Noto Color Emoji';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--c-background-page);
+  color: var(--c-text-primary);
+  transition: background-color var(--duration-base), color var(--duration-base);
+}
+
+
+/* Tooltip Directive Style */
+.v-tooltip-popper {
+  position: fixed;
+  padding: 8px 12px;
+  background-color: var(--c-text-primary);
+  color: var(--c-background);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  white-space: nowrap;
+  z-index: 9999;
+  opacity: 0;
+  transition: opacity var(--duration-fast);
+  pointer-events: none;
+}
+
+.v-tooltip-popper.is-visible {
+  opacity: 1;
+}
