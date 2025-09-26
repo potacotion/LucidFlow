@@ -19,7 +19,7 @@ withDefaults(defineProps<Props>(), {
 
 <style scoped>
 .base-divider {
-  background-color: var(--c-border);
+  background-color: var(--c-border-base);
 }
 
 .base-divider--horizontal {

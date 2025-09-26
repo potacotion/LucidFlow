@@ -4,6 +4,7 @@ import Paths from '@src/common/constants/Paths';
 import UserRoutes from './UserRoutes';
 import WorkflowRoutes from './WorkflowRoutes';
 import NodeDefinitionRoutes from './NodeDefinitionRoutes';
+import FolderRoutes from './FolderRoutes';
 
 
 /******************************************************************************
@@ -31,6 +32,9 @@ apiRouter.use(Paths.Users.Base, userRouter);
 apiRouter.use(Paths.Workflows.Base, WorkflowRoutes);
 // Add NodeDefinitionRouter
 apiRouter.use(Paths.NodeDefinitions.Base, NodeDefinitionRoutes);
+
+// Add FolderRouter
+apiRouter.use(Paths.Folders.Base, FolderRoutes);
 
 
 /******************************************************************************

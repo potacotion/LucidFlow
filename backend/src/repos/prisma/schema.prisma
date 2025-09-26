@@ -28,6 +28,22 @@ enum UserRoles {
   Standard
   Admin
 }
+// 文件夹表
+model Folder {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  parentId String?
+  parent   Folder?  @relation("FolderChildren", fields: [parentId], references: [id])
+  children Folder[] @relation("FolderChildren")
+
+  workflows Workflow[]
+
+  @@map("folders")
+}
+
 // 工作流表
 // 整个工作流的结构，包括节点和边，都存储在'data'字段中
 model Workflow {
@@ -40,6 +56,9 @@ model Workflow {
   
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  folderId String?
+  folder   Folder? @relation(fields: [folderId], references: [id])
 
   @@map("workflows")
 }

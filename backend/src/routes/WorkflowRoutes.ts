@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import Paths from '@src/common/constants/Paths';
 import WorkflowService from '@src/services/WorkflowService';
-import { Workflow } from '@src/models/workflow';
+import { Workflow, Folder } from '@src/models/workflow';
 import {  } from 'jet-logger';
 
 const WorkflowRoutes = Router();
@@ -17,8 +17,8 @@ const WorkflowRoutes = Router();
  *         description: A list of workflows.
  */
 WorkflowRoutes.get(Paths.Workflows.GetAll, async (_, res) => {
-  const workflows = await WorkflowService.getAll();
-  return res.json(workflows);
+  const tree = await WorkflowService.getTree();
+  return res.json(tree);
 });
 
 /**

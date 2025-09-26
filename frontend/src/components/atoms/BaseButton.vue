@@ -8,7 +8,7 @@
 import { computed } from 'vue';
 
 type Variant = 'primary' | 'secondary' | 'danger' | 'success' | 'warning' | 'info' | 'text';
-type Size = 'sm' | 'base' | 'lg';
+type Size = 'sm' | 'base' | 'lg' | 'xl';
 
 interface Props {
   variant?: Variant;
@@ -17,6 +17,7 @@ interface Props {
   plain?: boolean;
   round?: boolean;
   circle?: boolean;
+  square?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -33,6 +34,7 @@ const buttonClasses = computed(() => [
     'is-plain': props.plain,
     'is-round': props.round,
     'is-circle': props.circle,
+    'is-square': props.square,
   },
 ]);
 </script>
@@ -73,15 +75,44 @@ const buttonClasses = computed(() => [
 }
 
 /* Sizes */
+/* Default size for circle/square */
+.base-button.is-circle,
+.base-button.is-square {
+    width: 32px;
+    padding: 0;
+}
+
+.base-button--xl {
+  height: 48px;
+  padding: 14px 22px;
+  font-size: var(--font-size-xl);
+}
+.base-button--xl.is-circle,
+.base-button--xl.is-square {
+    width: 48px;
+    padding: 0;
+}
+
 .base-button--lg {
   height: 40px;
   padding: 12px 19px;
   font-size: var(--font-size-lg);
 }
+.base-button--lg.is-circle,
+.base-button--lg.is-square {
+  width: 40px;
+  padding: 0;
+}
+
 .base-button--sm {
   height: 24px;
   padding: 5px 11px;
   font-size: var(--font-size-xs);
+}
+.base-button--sm.is-circle,
+.base-button--sm.is-square {
+  width: 24px;
+  padding: 0;
 }
 
 /* Variants */
@@ -148,6 +179,10 @@ const buttonClasses = computed(() => [
 /* Circle */
 .is-circle {
   border-radius: 50%;
-  padding: 8px;
+}
+
+/* Square */
+.is-square {
+  border-radius: 0;
 }
 </style>

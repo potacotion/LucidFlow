@@ -230,4 +230,13 @@ export type Workflow = {
   name: string;
   description?: string;
   graph: Graph;
+  folderId?: string;
+};
+
+export type Folder = {
+  id: string;
+  name: string;
+  parentId?: string;
+  children: Folder[];
+  workflows: Workflow[];
 };

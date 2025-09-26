@@ -1,34 +1,60 @@
 <template>
   <div class="base-node">
-
     <div class="title">{{ data.label || 'Node' }}</div>
-    <div class="ports">
-      <div class="col-input">
-        <span v-for="(p, i) in input" :key="'in-' + i" class="text-port-input">
-          {{ p.name }}:{{ p.data }}
-          <Handle :id="'in-' + p.name" type="target" :position="Position.Left"
-            :style="{ backgroundColor: stringToColor(p.name).hsl }" :is-valid-connection="isValidConnection" />
-        </span>
+
+    <div class="ports-container">
+      <!-- Control Flow Ports -->
+      <div v-if="hasControlPorts" class="ports ports-control">
+        <div class="col-input">
+          <span v-for="(p, i) in controlInputs" :key="'in-ctrl-' + i" class="text-port-input">
+            {{ p.name }}
+            <Handle :id="'in-' + p.name + '-' + p.dataType" type="target" :position="Position.Left"
+              :style="{ backgroundColor: stringToColor(p.dataType).hsl }" :is-valid-connection="isValidConnection" />
+          </span>
+        </div>
+        <div class="col-output">
+          <span v-for="(p, i) in controlOutputs" :key="'out-ctrl-' + i" class="text-port-output">
+            {{ p.name }}
+            <Handle :id="'out-' + p.name + '-' + p.dataType" type="source" :position="Position.Right"
+              :style="{ backgroundColor: stringToColor(p.dataType).hsl }" :is-valid-connection="isValidConnection" />
+          </span>
+        </div>
       </div>
 
-      <div class="col-output">
-        <span v-for="(p, i) in output" :key="'out-' + i" class="text-port-output">
-          {{ p.name }}:{{ p.data }}
-          <Handle :id="'out-' + p.name" type="source" :position="Position.Right"
-            :style="{ backgroundColor: stringToColor(p.name).hsl }" :is-valid-connection="isValidConnection" />
-        </span>
+      <!-- Divider -->
+      <div v-if="hasControlPorts && hasDataPorts" class="divider"></div>
+
+      <!-- Data Flow Ports -->
+      <div v-if="hasDataPorts" class="ports ports-data">
+        <div class="col-input">
+          <span v-for="(p, i) in dataInputs" :key="'in-data-' + i" class="text-port-input">
+            {{ p.name }}:{{ p.data }}
+            <Handle :id="'in-' + p.name + '-' + p.dataType" type="target" :position="Position.Left"
+              :style="{ backgroundColor: stringToColor(p.dataType).hsl }" :is-valid-connection="isValidConnection" />
+          </span>
+        </div>
+        <div class="col-output">
+          <span v-for="(p, i) in dataOutputs" :key="'out-data-' + i" class="text-port-output">
+            {{ p.name }}:{{ p.data }}
+            <Handle :id="'out-' + p.name + '-' + p.dataType" type="source" :position="Position.Right"
+              :style="{ backgroundColor: stringToColor(p.dataType).hsl }" :is-valid-connection="isValidConnection" />
+          </span>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import { Handle, Position } from '@vue-flow/core'
 // 从新位置导入
 import { stringToColor } from '@/utils/color' // <-- 路径根据你的项目结构调整
 
 interface Port {
   name: string
+  type: string // control or data
+  dataType: string
   data: any
 }
 interface NodeData {
@@ -39,20 +65,35 @@ interface NodeData {
 
 const props = defineProps<{ data: NodeData }>()
 
-const input = props.data.input || []
-const output = props.data.output || []
+const controlInputs = computed(() => (props.data.input || []).filter(p => p.type === 'control'))
+const dataInputs = computed(() => (props.data.input || []).filter(p => p.type === 'data'))
+const controlOutputs = computed(() => (props.data.output || []).filter(p => p.type === 'control'))
+const dataOutputs = computed(() => (props.data.output || []).filter(p => p.type === 'data'))
+
+const hasControlPorts = computed(() => controlInputs.value.length > 0 || controlOutputs.value.length > 0)
+const hasDataPorts = computed(() => dataInputs.value.length > 0 || dataOutputs.value.length > 0)
 
 // `stringToColor` 函数已经移走
 
 import type { ValidConnectionFunc } from '@vue-flow/core'
 
 const isValidConnection: ValidConnectionFunc = (connection) => {
+  // 确保不是连接到同一个节点
   if (connection.source === connection.target) return false
 
-  const srcKey = connection.sourceHandle?.replace(/^out-/, '')
-  const tgtKey = connection.targetHandle?.replace(/^in-/, '')
+  const sourceHandle = connection.sourceHandle || ''
+  const targetHandle = connection.targetHandle || ''
 
-  return srcKey === tgtKey
+  // 确保连接方向是 source -> target
+  if (!sourceHandle.startsWith('out-') || !targetHandle.startsWith('in-')) {
+    return false
+  }
+
+  // 提取并比较数据类型
+  const sourceDataType = sourceHandle.split('-').pop()
+  const targetDataType = targetHandle.split('-').pop()
+
+  return sourceDataType === targetDataType && sourceDataType !== undefined
 }
 </script>
 
@@ -66,25 +107,36 @@ const isValidConnection: ValidConnectionFunc = (connection) => {
   border-radius: 12px;
   overflow: hidden;
   /* border: 1px solid #414141; */
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
-  background-color: white;
+  box-shadow: 0 0 10px var(--c-shadow-dark);
+  background-color: var(--c-background);
 }
 
 /* ========= 标题区 ========= */
 .title {
   padding: 8px 12px;
-  background: #fafafa;
+  background: var(--c-fill-lighter);
   font-weight: 600;
   text-align: center;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--c-border-base);
 }
 
 /* ========= 端口区 ========= */
+.ports-container {
+  display: flex;
+  flex-direction: column;
+}
+
 .ports {
   display: flex;
   align-items: stretch;
   gap: 12px;
   padding: 12px 16px;
+}
+
+.divider {
+  height: 1px;
+  background-color: var(--c-border-light);
+  margin: 0 8px;
 }
 
 /* ========= 左列 / 右列 ========= */
@@ -110,11 +162,11 @@ const isValidConnection: ValidConnectionFunc = (connection) => {
 
 /* ========= 文字颜色 ========= */
 .text-port-input {
-  color: #333;
+  color: var(--c-text-primary);
 }
 
 .text-port-output {
-  color: #333;
+  color: var(--c-text-primary);
 }
 
 /* 👇 注意：Vue Flow 的 Handle 默认样式可能会覆盖你的颜色，
@@ -123,6 +175,6 @@ const isValidConnection: ValidConnectionFunc = (connection) => {
   width: 8px !important;
   height: 8px !important;
   border-radius: 50% !important;
-  border: 1px solid white !important;
+  border: 1px solid var(--c-background) !important;
 }
 </style>

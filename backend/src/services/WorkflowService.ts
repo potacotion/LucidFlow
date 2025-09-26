@@ -3,8 +3,10 @@ import { Workflow } from '@src/models/workflow';
 import { SignalDrivenEngine } from './SignalDrivenEngine';
 
 
-function getAll(): Promise<Workflow[]> {
-  return WorkflowRepo.getAll();
+import { Folder } from '@src/models/workflow';
+
+function getTree(): Promise<Folder[]> {
+  return WorkflowRepo.getTree();
 }
 
 function getOne(id: string): Promise<Workflow | null> {
@@ -32,11 +34,26 @@ async function runOne(id: string): Promise<any> {
   return await engine.run(workflow.graph);
 }
 
+function addFolder(folder: Partial<Folder>): Promise<Folder> {
+  return WorkflowRepo.addFolder(folder);
+}
+
+function updateFolder(id: string, folder: Partial<Folder>): Promise<Folder> {
+  return WorkflowRepo.updateFolder(id, folder);
+}
+
+function deleteFolder(id: string): Promise<void> {
+  return WorkflowRepo.deleteFolder(id);
+}
+
 export default {
-  getAll,
+  getTree,
   getOne,
   addOne,
   updateOne,
   deleteOne,
   runOne,
+  addFolder,
+  updateFolder,
+  deleteFolder,
 } as const;

@@ -21,4 +21,10 @@ export default {
     Base: '/node-definitions',
     GetAll: '/',
   },
+  Folders: {
+    Base: '/folders',
+    Add: '/',
+    Update: '/:id',
+    Delete: '/:id',
+  },
 } as const;

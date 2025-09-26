@@ -27,6 +27,7 @@ interface Props {
   ml?: Spacing;
   radius?: Radius;
   bg?: string; // e.g., 'var(--c-background-overlay)'
+  shadow?: string; // e.g., 'var(--c-shadow-base)'
 }
 
 const props = defineProps<Props>();
@@ -75,6 +76,7 @@ const boxStyles = computed(() => {
 
   if (props.radius) styles.borderRadius = getRadiusValue(props.radius);
   if (props.bg) styles.backgroundColor = props.bg;
+  if (props.shadow) styles.boxShadow = props.shadow;
 
   return { ...styles, ...(attrs.style as object) };
 });

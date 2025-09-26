@@ -13,6 +13,7 @@ type Align = 'flex-start' | 'center' | 'flex-end' | 'stretch' | 'baseline';
 type Justify = 'flex-start' | 'center' | 'flex-end' | 'space-between' | 'space-around' | 'space-evenly';
 
 interface Props {
+  /** @deprecated use `gap` instead */
   spacing?: Spacing;
   gap?: Spacing;
   padding?: Spacing;
@@ -24,7 +25,7 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), {
   direction: 'column',
-  gap: 'none',
+  gap: 'base',
   padding: 'none',
   wrap: false,
 });
@@ -40,7 +41,8 @@ const stackStyles = computed(() => {
   const styles: StyleValue = {
     display: 'flex',
     flexDirection: props.direction,
-    gap: getSpacingValue(props.spacing ?? props.gap),
+    // `spacing` is kept for backward compatibility. `gap` is preferred.
+    gap: getSpacingValue(props.spacing || props.gap),
     padding: getSpacingValue(props.padding),
     alignItems: props.align,
     justifyContent: props.justify,
