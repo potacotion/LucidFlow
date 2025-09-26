@@ -1,3 +1,4 @@
+@import './base/_scrollbar.css';
 @import './base/_tokens.css';
 @import './themes/_light.css';
 @import './themes/_dark.css';

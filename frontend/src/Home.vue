@@ -1,58 +1,99 @@
 <template>
-  <Sidebar>
-    <div class="node-palette">
-      <div
+  <!-- New Sidebar Implementation -->
+  <BaseBox
+    :class="['sidebar', { 'is-open': isSidebarOpen }]"
+    bg="soft"
+    shadow="base"
+  >
+    <BaseStack vertical spacing="sm" padding="base">
+      <BaseText as="h3" size="lg" :weight="600">Nodes</BaseText>
+      <BaseCard
         v-for="def in nodeDefinitions"
         :key="def.type"
-        class="palette-node"
+        padding="sm"
+        radius="base"
+        shadow="light"
         :draggable="true"
         @dragstart="onDragStart($event, def)"
+        class="palette-node"
       >
-        {{ def.label }}
-      </div>
-    </div>
-  </Sidebar>
-  <div class="controls">
-    <button @click="saveWorkflow">Save</button>
-    <button @click="runWorkflow">Run</button>
-  </div>
-  <VueFlow
-    :nodes="nodes"
-    :edges="edges"
-    class="main-vueflow"
-    @dragover="onDragOver"
-    @drop="onDrop"
-  >
-    <Background />
+        <BaseText size="sm">{{ def.label }}</BaseText>
+      </BaseCard>
+    </BaseStack>
+  </BaseBox>
 
-    <template #node-basenode="basenodeProps">
-      <basenode v-bind="basenodeProps" />
-    </template>
-  </VueFlow>
+  <!-- Sidebar Toggle Button -->
+  <BaseButton
+    :class="['sidebar-toggle', { 'is-open': isSidebarOpen }]"
+    circle
+    @click="isSidebarOpen = !isSidebarOpen"
+  >
+    <BaseIcon icon="fa-solid fa-angle-right" />
+  </BaseButton>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <!-- Controls -->
+    <BaseStack class="controls" spacing="sm">
+      <BaseButton variant="secondary" @click="saveWorkflow">Save</BaseButton>
+      <BaseButton variant="primary" @click="runWorkflow">Run</BaseButton>
+    </BaseStack>
+
+    <!-- VueFlow Canvas -->
+    <VueFlow
+      :nodes="nodes"
+      :edges="edges"
+      class="main-vueflow"
+      @dragover="onDragOver"
+      @drop="onDrop"
+    >
+      <Background />
+      <template #node-basenode="basenodeProps">
+        <basenode v-bind="basenodeProps" />
+      </template>
+    </VueFlow>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import type { Node, Edge } from '@vue-flow/core'
-import { VueFlow, useVueFlow } from '@vue-flow/core'
-import { Background } from '@vue-flow/background'
-import { NodeDefinitionsService, NodeDefinition, WorkflowsService } from '@/api'
+import { ref, onMounted } from 'vue';
+import type { Node, Edge } from '@vue-flow/core';
+import { VueFlow, useVueFlow } from '@vue-flow/core';
+import { Background } from '@vue-flow/background';
 
-import '@vue-flow/core/dist/style.css'
-import '@vue-flow/core/dist/theme-default.css'
+// Base Components
+import BaseBox from '@/components/atoms/BaseBox.vue';
+import BaseButton from '@/components/atoms/BaseButton.vue';
+import BaseCard from '@/components/atoms/BaseCard.vue';
+import BaseIcon from '@/components/atoms/BaseIcon.vue';
+import BaseStack from '@/components/atoms/BaseStack.vue';
+import BaseText from '@/components/atoms/BaseText.vue';
 
-import basenode from '@/node/BaseNode.vue'
-import { stringToColor } from './utils/color'
+// API Services
+import { NodeDefinitionsService, NodeDefinition, WorkflowsService } from '@/api';
 
-const { onConnect, addEdges, project, addNodes } = useVueFlow()
+// Local Components
+import basenode from '@/node/BaseNode.vue';
+
+// Services
+import { BaseToast } from '@/services/toast';
+
+// Utils
+import { stringToColor } from './utils/color';
+
+// Vue-Flow Styles
+import '@vue-flow/core/dist/style.css';
+import '@vue-flow/core/dist/theme-default.css';
+
+const { onConnect, addEdges, project, addNodes } = useVueFlow();
 
 onConnect((connection) => {
   if (!connection.sourceHandle) {
-    console.warn('Connection ignored: source handle is missing.', connection)
-    return
+    console.warn('Connection ignored: source handle is missing.', connection);
+    return;
   }
-  const portName = connection.sourceHandle.replace(/^out-/, '')
-  const color = stringToColor(portName).hsl
+  const portName = connection.sourceHandle.replace(/^out-/, '');
+  const color = stringToColor(portName).hsl;
   const newEdge = {
     ...connection,
     style: {
@@ -60,15 +101,18 @@ onConnect((connection) => {
       strokeWidth: 2.5,
     },
     animated: true,
-  }
-  addEdges(newEdge)
-})
+  };
+  addEdges(newEdge);
+});
 
-const nodes = ref<Node[]>([])
-const edges = ref<Edge[]>([])
+// Sidebar State
+const isSidebarOpen = ref(true);
 
-import Sidebar from './components/Sidebar.vue';
+// VueFlow State
+const nodes = ref<Node[]>([]);
+const edges = ref<Edge[]>([]);
 
+// Node Definitions
 const nodeDefinitions = ref<NodeDefinition[]>([]);
 
 onMounted(async () => {
@@ -76,10 +120,12 @@ onMounted(async () => {
     const definitions = await NodeDefinitionsService.getApiNodeDefinitions();
     nodeDefinitions.value = definitions;
   } catch (error) {
+    BaseToast.error('Failed to fetch node definitions.');
     console.error('Failed to fetch node definitions:', error);
   }
 });
 
+// Drag and Drop Logic
 function onDragStart(event: DragEvent, definition: NodeDefinition) {
   if (event.dataTransfer) {
     event.dataTransfer.setData('application/json', JSON.stringify(definition));
@@ -103,24 +149,23 @@ function onDrop(event: DragEvent) {
   const definition = JSON.parse(event.dataTransfer?.getData('application/json') || '{}');
   const { x, y } = project({ x: event.clientX, y: event.clientY });
 
-  const newNode = {
+  const newNode: Node = {
     id: getId(),
     type: 'basenode',
     position: { x, y },
     data: {
       label: definition.label,
-      input: definition.ports.filter((p: any) => p.direction === 'in' && p.type === 'data').map((p: any) => ({ name: p.name, data: p.defaultValue })),
-      output: definition.ports.filter((p: any) => p.direction === 'out' && p.type === 'data').map((p: any) => ({ name: p.name, data: null })),
+      // Ensure ports are correctly mapped
+      input: definition.ports?.filter((p: any) => p.direction === 'in' && p.type === 'data').map((p: any) => ({ name: p.name, data: p.defaultValue })) || [],
+      output: definition.ports?.filter((p: any) => p.direction === 'out' && p.type === 'data').map((p: any) => ({ name: p.name, data: null })) || [],
     },
   };
   addNodes([newNode]);
 }
 
+// Workflow Actions
 async function saveWorkflow() {
   try {
-    // This is a placeholder for saving a workflow.
-    // In a real app, you would likely have a workflow ID.
-    // Here we'll just save a new workflow every time.
     const workflow = {
       id: '', // id will be generated by the backend
       name: 'My Workflow',
@@ -129,39 +174,87 @@ async function saveWorkflow() {
         edges: edges.value,
       },
     };
-    await WorkflowsService.postApiWorkflowsAdd(workflow);
-    alert('Workflow saved!');
+    await WorkflowsService.postApiWorkflows(workflow);
+    BaseToast.success('Workflow saved!');
   } catch (error) {
+    BaseToast.error('Failed to save workflow.');
     console.error('Failed to save workflow:', error);
-    alert('Failed to save workflow.');
   }
 }
 
 async function runWorkflow() {
-  alert('Run functionality is not yet implemented.');
-  // Placeholder for run logic. You would typically need a workflow ID to run.
+  BaseToast.info('Run functionality is not yet implemented.');
 }
-
 </script>
 
 <style scoped>
+.main-content {
+  width: 100vw;
+  height: 100vh;
+}
+
 .main-vueflow {
-  background-color: #FAFAFA;
+  background-color: var(--c-bg-page);
 }
-.node-palette {
-  padding: 10px;
+
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  width: 280px;
+  transform: translateX(-100%);
+  transition: transform 0.3s ease;
+  z-index: 100;
+  overflow-y: auto;
+  background-color: var(--c-bg-soft); /* Ensure background is applied */
+  box-shadow: var(--shadow-base);
+  border-right: 1px solid var(--c-border-base);
 }
+
+.sidebar.is-open {
+  transform: translateX(0);
+}
+
 .palette-node {
-  border: 1px solid #ccc;
-  padding: 10px;
-  margin-bottom: 10px;
-  border-radius: 5px;
   cursor: grab;
+  user-select: none;
+  border: 1px solid var(--c-border-base);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
 }
+
+.palette-node:hover {
+  box-shadow: var(--shadow-base);
+  transform: translateY(-2px);
+}
+
+.sidebar-toggle {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  z-index: 101;
+  transition: transform 0.3s ease, left 0.3s ease, background-color 0.3s ease, color 0.3s ease;
+  background-color: var(--c-bg-base);
+  color: var(--c-text-primary);
+}
+
+.sidebar-toggle .base-icon {
+  transition: transform 0.3s ease;
+}
+
+.sidebar-toggle.is-open {
+  left: 290px; /* sidebar width + gap */
+}
+
+.sidebar-toggle.is-open .base-icon {
+  transform: rotate(180deg);
+}
+
+
 .controls {
   position: absolute;
-  top: 10px;
-  right: 10px;
+  top: 16px;
+  right: 16px;
   z-index: 10;
 }
 </style>
