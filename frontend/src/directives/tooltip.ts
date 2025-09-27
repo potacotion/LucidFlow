@@ -2,6 +2,9 @@ import { type App, type Directive } from 'vue';
 
 export const tooltipDirective: Directive = {
   mounted(el, binding) {
+    if (!binding.value) {
+      return;
+    }
     const popper = document.createElement('div');
     popper.className = 'v-tooltip-popper';
     popper.textContent = binding.value;
@@ -9,8 +12,21 @@ export const tooltipDirective: Directive = {
     const show = () => {
       document.body.appendChild(popper);
       const { top, left, height, width } = el.getBoundingClientRect();
-      popper.style.top = `${top - popper.offsetHeight - 5}px`;
-      popper.style.left = `${left + width / 2 - popper.offsetWidth / 2}px`;
+
+      // Get popper dimensions
+      const popperHeight = popper.offsetHeight;
+      const popperWidth = popper.offsetWidth;
+
+      // Check if there is enough space at the top
+      if (top - popperHeight - 5 < 0) {
+        // Not enough space, show below
+        popper.style.top = `${top + height + 5}px`;
+      } else {
+        // Enough space, show above
+        popper.style.top = `${top - popperHeight - 5}px`;
+      }
+
+      popper.style.left = `${left + width / 2 - popperWidth / 2}px`;
       popper.classList.add('is-visible');
     };
 

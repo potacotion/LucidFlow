@@ -18,7 +18,7 @@ import BaseHeading from '@/components/atoms/BaseHeading.vue'
       <div class="toolbar-section left">
         <BaseHeading :level="6">LucidFlow</BaseHeading>
         <BaseStack gap="base" direction="row" class="button-group">
-          <BaseButton>
+          <BaseButton tooltip="run">
             <BaseIcon icon="fa-solid fa-play" />
             Run
           </BaseButton>
@@ -48,6 +48,8 @@ import BaseHeading from '@/components/atoms/BaseHeading.vue'
 
 <style scoped>
 .top-toolbar {
+  position: relative;
+  z-index: 1;
   grid-area: topbar;
   /* border-bottom: 1px solid var(--c-border-base); */
   background-color: var(--c-background); /* Changed from --color-bg-base for better contrast */

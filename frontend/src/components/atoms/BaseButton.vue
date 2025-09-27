@@ -1,5 +1,5 @@
 <template>
-  <button :class="buttonClasses" v-bind="$attrs">
+  <button :class="buttonClasses" v-tooltip="tooltip" v-bind="$attrs">
     <slot />
   </button>
 </template>
@@ -18,11 +18,13 @@ interface Props {
   round?: boolean;
   circle?: boolean;
   square?: boolean;
+  tooltip?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   variant: 'primary',
   size: 'base',
+  tooltip: '',
 });
 
 const buttonClasses = computed(() => [
