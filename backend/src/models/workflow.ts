@@ -32,6 +32,17 @@ export type NodeDefinition = {
   properties?: PropertyDefinition[];
 
   /**
+   * [可选] 为UI提供动态端口的配置规则。
+   * 如果存在此属性，UI将允许用户通过特定操作（如点击按钮）来添加端口。
+   */
+  dynamicPorts?: {
+    /** 指示是否允许添加入端口或出端口 */
+    canAdd: { in?: boolean; out?: boolean };
+    /** 当用户在UI上添加新端口时，以此为模板创建新的 PortDefinition */
+    portTemplate: Partial<PortDefinition> & { namePrefix: string; labelPrefix: string };
+  };
+
+  /**
    * [核心] 节点的执行函数，在沙箱环境中执行节点的核心逻辑
    */
   run: (params: {

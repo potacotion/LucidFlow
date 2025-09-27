@@ -5,14 +5,21 @@ import BaseStack from '@/components/atoms/BaseStack.vue'
 import BaseText from '@/components/atoms/BaseText.vue'
 import BaseCard from '@/components/atoms/BaseCard.vue'
 import { NodeDefinitionsService, type NodeDefinition } from '@/api'
+import { useWorkflowStore } from '@/stores/workflow.store'
 import { BaseToast } from '@/services/toast'
 
 const nodeDefinitions = ref<NodeDefinition[]>([])
+const workflowStore = useWorkflowStore()
 
 onMounted(async () => {
   try {
     const definitions = await NodeDefinitionsService.getApiNodeDefinitions()
     nodeDefinitions.value = definitions
+
+    // --- FIX: Populate the central store with the fetched definitions ---
+    const definitionsMap = Object.fromEntries(definitions.map(def => [def.type, def]))
+    workflowStore.nodeDefinitions = definitionsMap
+
   } catch (error) {
     BaseToast.error('Failed to fetch node definitions.')
     console.error('Failed to fetch node definitions:', error)

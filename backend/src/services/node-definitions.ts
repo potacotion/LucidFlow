@@ -13,29 +13,69 @@ export const NODE_DEFINITIONS = new Map<string, NodeDefinition>([
         description: '输出一个在属性中定义的固定值',
         archetype: 'pure',
         ports: [
-            { name: 'value', label: '值', type: 'data', direction: 'out', dataType: 'any' },
+            { name: 'value', label: '值', type: 'data', direction: 'out', dataType: 'number' },
         ],
         properties: [
-            { name: 'value', label: '值', type: 'string', defaultValue: '' }
+            {
+                name: 'dataType',
+                label: 'Data Type',
+                type: 'select',
+                defaultValue: 'string',
+                options: [
+                    { label: 'String', value: 'string' },
+                    { label: 'Number', value: 'number' },
+                    { label: 'Boolean', value: 'boolean' },
+                ],
+                description: 'The data type of the constant value.',
+            },
+            {
+                name: 'value',
+                label: 'Value',
+                type: 'textarea', // Textarea is more versatile for different types
+                defaultValue: '',
+                description: 'The constant value to output.',
+            },
         ],
         run: async ({ params }) => {
-            return { value: params.value };
+            const { dataType, value } = params;
+            let parsedValue: any = value;
+            try {
+                if (dataType === 'number') {
+                    parsedValue = Number(value);
+                } else if (dataType === 'boolean') {
+                    parsedValue = value === 'true' || value === '1';
+                }
+            } catch (error) {
+                console.error('Error parsing constant value:', error);
+            }
+            return { value: parsedValue };
         },
     }],
     ['math/add', {
         type: 'math/add',
         label: '加法',
-        description: '计算两个数的和',
+        description: '计算所有输入端口数值的总和',
         archetype: 'pure',
+        // Add a flag to indicate that the UI can add ports
+        dynamicPorts: {
+            canAdd: { 'in': true, 'out': false }, // Can add 'in' ports, but not 'out'
+            portTemplate: { // Template for new ports added in the UI
+                namePrefix: 'operand',
+                labelPrefix: 'Operand',
+                type: 'data',
+                dataType: 'number',
+                defaultValue: 0,
+            },
+        },
         ports: [
-            { name: 'a', label: 'A', type: 'data', direction: 'in', dataType: 'number', defaultValue: 0 },
-            { name: 'b', label: 'B', type: 'data', direction: 'in', dataType: 'number', defaultValue: 0 },
+            // Start with a base result port
             { name: 'result', label: '结果', type: 'data', direction: 'out', dataType: 'number' },
         ],
         run: async ({ input }) => {
-            const a = input.a ?? 0;
-            const b = input.b ?? 0;
-            return { result: a + b };
+            // The 'input' object will contain all connected input ports, including dynamic ones.
+            // We sum all values in the input object.
+            const sum = Object.values(input).reduce((acc: number, val: any) => acc + (Number(val) || 0), 0);
+            return { result: sum };
         },
     }],
     ['math/subtract', {

@@ -1,31 +1,28 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { computed, watch } from 'vue';
 import type { Node, Edge } from '@vue-flow/core';
 import { VueFlow, useVueFlow } from '@vue-flow/core';
 import { Background } from '@vue-flow/background';
-
-// Base Components (some might be needed if you display info in-canvas)
-// import BaseBox from '@/components/atoms/BaseBox.vue';
-
-// API Services
-import { NodeDefinitionsService, NodeDefinition, WorkflowsService } from '@/api';
+import type { NodeDefinition } from '@/types/workflow';
 
 // Local Components
 import basenode from '@/node/BaseNode.vue';
 
-// Services
-import { BaseToast } from '@/services/toast';
+// Stores
+import { useUIStore } from '@/stores/ui.store';
+import { useWorkflowStore } from '@/stores/workflow.store';
 
 // Utils
 import { stringToColor } from '@/utils/color';
-import { useUIStore } from '@/stores/ui.store';
+
 
 // Vue-Flow Styles
 import '@vue-flow/core/dist/style.css';
 import '@vue-flow/core/dist/theme-default.css';
 
-const { onConnect, addEdges, project, addNodes, onNodeClick, onPaneClick } = useVueFlow();
+const { onConnect, addEdges, project, onNodeClick, onPaneClick, removeEdges, getEdges } = useVueFlow();
 const uiStore = useUIStore();
+const workflowStore = useWorkflowStore();
 
 // --- Integration with Config Panel ---
 onNodeClick(({ node }) => {
@@ -58,9 +55,47 @@ onConnect((connection) => {
   addEdges(newEdge);
 });
 
-// VueFlow State
-const nodes = ref<Node[]>([]);
-const edges = ref<Edge[]>([]);
+// --- State Management ---
+// Let the workflow store be the single source of truth.
+// We compute a VueFlow-compatible version of the nodes from the store.
+const nodes = computed<Node[]>(() => workflowStore.nodes.map(n => ({
+  id: n.id,
+  type: 'basenode', // All our nodes use the same BaseNode component for rendering
+  position: n.position,
+  data: {
+    label: n.label,
+    // Pass all ports to the BaseNode for rendering
+    input: n.ports.filter(p => p.direction === 'in'),
+    output: n.ports.filter(p => p.direction === 'out'),
+  },
+})));
+
+// Edges are managed by the store, and we sync them with VueFlow
+const edges = computed<Edge[]>(() => workflowStore.edges.map(e => ({
+  id: e.id,
+  source: e.source.nodeId,
+  sourceHandle: `${e.source.portName}-${e.source.nodeId}`,
+  target: e.target.nodeId,
+  targetHandle: `${e.target.portName}-${e.target.nodeId}`,
+  animated: true,
+})));
+
+// Watch for changes in the store's edges and sync them with VueFlow
+watch(() => workflowStore.edges, (newStoreEdges) => {
+  const currentFlowIds = new Set(getEdges.value.map(e => e.id));
+  const storeIds = new Set(newStoreEdges.map(e => e.id));
+
+  // Find edges to remove from VueFlow
+  const edgesToRemove = [...currentFlowIds].filter(id => !storeIds.has(id));
+  if (edgesToRemove.length > 0) {
+    removeEdges(edgesToRemove);
+  }
+
+  // NOTE: Adding edges is handled by the `onConnect` callback for now.
+  // If edges could be added programmatically from the store, we'd need to
+  // handle that here as well by finding and adding new edges.
+}, { deep: true });
+
 
 // Node Definitions are passed from outside now, so we don't fetch them here.
 // This makes the component more reusable.
@@ -68,7 +103,7 @@ const props = defineProps<{
   nodeDefinitions: NodeDefinition[]
 }>()
 
-// Drag and Drop Logic
+// --- Drag and Drop Logic ---
 function onDragOver(event: DragEvent) {
   event.preventDefault();
   if (event.dataTransfer) {
@@ -76,15 +111,13 @@ function onDragOver(event: DragEvent) {
   }
 }
 
-let id = 0;
-function getId() {
-  return `dndnode_${id++}`;
-}
-
 function onDrop(event: DragEvent) {
-  const definition = JSON.parse(event.dataTransfer?.getData('application/json') || '{}');
+  const definition: NodeDefinition = JSON.parse(event.dataTransfer?.getData('application/json') || '{}');
+  if (!definition || !definition.type) {
+    console.error("Dropped data is not a valid NodeDefinition.");
+    return;
+  }
 
-  // Use event.currentTarget to get the VueFlow container element
   const container = event.currentTarget as HTMLDivElement;
   if (!container) return;
 
@@ -95,28 +128,11 @@ function onDrop(event: DragEvent) {
     y: event.clientY - top,
   });
 
-  const newNode: Node = {
-    id: getId(),
-    type: 'basenode',
-    position,
-    data: {
-      label: definition.label,
-      //input: definition.ports?.filter((p: any) => p.direction === 'in' && p.type === 'data').map((p: any) => ({ name: p.name, data: p.defaultValue })) || [],
-      //output: definition.ports?.filter((p: any) => p.direction === 'out' && p.type === 'data').map((p: any) => ({ name: p.name, data: null })) || [],
-      input: definition.ports?.filter((p: any) => p.direction === 'in' ).map((p: any) => ({ name: p.name, type: p.type, dataType: p.dataType, data: p.defaultValue })) || [],
-      output: definition.ports?.filter((p: any) => p.direction === 'out' ).map((p: any) => ({ name: p.name, type: p.type, dataType: p.dataType, data: null })) || [],
-    },
-  };
-  addNodes([newNode]);
+  // Call the store action to create the new node
+  workflowStore.addNode(definition.type, position);
 }
 
-// Expose workflow data for saving
-defineExpose({
-  getWorkflowData: () => ({
-    nodes: nodes.value,
-    edges: edges.value,
-  })
-});
+// TODO: Expose a save function that gets data from the store
 
 </script>
 

@@ -48,7 +48,7 @@ function handleTabClick(tab: 'nodes' | 'files') {
     </template>
 
     <!-- Main Content Slot -->
-    <BaseStack direction="row" class="main-content-stack">
+    <BaseStack direction="row" class="main-content-stack" gap="none">
       <WorkflowCanvas :node-definitions="nodeDefinitions" />
       <ConfigPanel />
     </BaseStack>
