@@ -75,6 +75,7 @@ export interface Edge {
     nodeId:string;
     portName: string;
   };
+  dataType?: string; // Optional: The type of data flowing through, for validation and styling
 }
 
 /**
