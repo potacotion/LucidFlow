@@ -1,12 +1,12 @@
 :root.theme-dark {
-  --c-primary: #409eff;
-  --c-primary-light-1: #3a8ee6;
-  --c-primary-light-2: #337ecc;
-  --c-success: #67c23a;
-  --c-warning: #e6a23c;
-  --c-danger: #f56c6c;
-  --c-error: #f56c6c;
-  --c-info: #909399;
+ --c-primary: #1864ab;
+  --c-primary-light-1: #2a7ac2;
+  --c-primary-light-2: #3c90d9;
+  --c-success: #417e2a;
+  --c-warning: #a87a2e;
+  --c-danger: #a04444;
+  --c-error: #a04444;
+  --c-info: #4a4a4a;
 
   --c-text-primary: #e5eaf3;
   --c-text-regular: #cfd3dc;
