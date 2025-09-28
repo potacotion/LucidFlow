@@ -106,3 +106,26 @@ export interface Graph {
   nodes: NodeInstance[];
   edges: Edge[];
 }
+
+
+/**
+ * Represents a complete workflow document, including its metadata and graph.
+ */
+export interface Workflow {
+  id: string;
+  name: string;
+  description?: string;
+  graph: Graph;
+  folderId?: string;
+}
+
+/**
+ * Represents a folder in the file hierarchy, which can contain other folders and workflows.
+ */
+export interface Folder {
+  id: string;
+  name: string;
+  parentId?: string;
+  children: Folder[];
+  workflows: Workflow[];
+}

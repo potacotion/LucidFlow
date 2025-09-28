@@ -13,6 +13,8 @@ export const useWorkflowStore = defineStore('workflow', () => {
 
   const nodes = ref<NodeInstance[]>([]);
   const edges = ref<Edge[]>([]);
+  const currentWorkflowId = ref<string | null>(null);
+  const currentWorkflowName = ref<string | null>(null);
 
   // A repository of all available node blueprints.
   // In a real app, this would likely be fetched from an API.
@@ -234,14 +236,60 @@ export const useWorkflowStore = defineStore('workflow', () => {
   }
 
 
+  /**
+   * Loads a complete workflow into the store, replacing the current state.
+   * @param workflow The workflow object to load.
+   */
+  function loadWorkflow(workflow: any) {
+    // TODO: Add proper validation for the incoming workflow object
+    nodes.value = workflow.nodes || [];
+    edges.value = workflow.edges || [];
+    currentWorkflowId.value = workflow.id;
+    currentWorkflowName.value = workflow.name;
+    uiStore.hideConfigPanel(); // Hide panel after loading
+  }
+
+  /**
+   * Clears the current workflow from the editor.
+   */
+  function unloadWorkflow() {
+    nodes.value = [];
+    edges.value = [];
+    currentWorkflowId.value = null;
+    currentWorkflowName.value = null;
+    uiStore.hideConfigPanel();
+  }
+
+  /**
+   * A computed property that represents the current state as a serializable workflow object.
+   * Returns null if there's no active workflow ID (useful for 'Save' vs 'Save As' logic).
+   */
+  const currentWorkflowData = computed(() => {
+    // This object always reflects the current canvas state.
+    const data = {
+      nodes: nodes.value,
+      edges: edges.value,
+      name: currentWorkflowName.value,
+      id: currentWorkflowId.value,
+    };
+
+    // We return it regardless of whether it has an ID.
+    // The component using it will decide what to do.
+    return data;
+  });
+
+
   return {
     // State
     nodes,
     edges,
     nodeDefinitions,
+    currentWorkflowId,
+    currentWorkflowName,
     // Computed
     selectedNode,
     selectedNodeDefinition,
+    currentWorkflowData,
     // Actions
     addNode,
     updateNodeProperties,
@@ -250,5 +298,7 @@ export const useWorkflowStore = defineStore('workflow', () => {
     removeEdges,
     removeNodes,
     validateAndAddEdge,
+    loadWorkflow,
+    unloadWorkflow,
   };
 });

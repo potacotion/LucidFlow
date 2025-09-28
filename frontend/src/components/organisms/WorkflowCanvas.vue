@@ -86,11 +86,8 @@ watch(() => workflowStore.edges, (newStoreEdges) => {
   }
 }, { deep: true });
 
-// 节点定义现在是从外部传递的，因此我们这里不获取它们。
-// 这使得组件更具可重用性。
-const props = defineProps<{
-  nodeDefinitions: NodeDefinition[]
-}>()
+// Node definitions are now managed by the workflow store,
+// ensuring a single source of truth across the application.
 
 // --- 拖放逻辑 ---
 function onDragOver(event: DragEvent) {

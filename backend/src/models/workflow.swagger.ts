@@ -73,6 +73,24 @@
  *           type: number
  *         language:
  *           type: string
+ *     Folder:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: string
+ *         name:
+ *           type: string
+ *         parentId:
+ *           type: string
+ *           nullable: true
+ *         children:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/Folder'
+ *         workflows:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/Workflow'
  *     Workflow:
  *       type: object
  *       properties:

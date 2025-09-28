@@ -10,6 +10,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'node-click', node: TreeNode): void;
+  (e: 'node-drag-start', event: DragEvent, node: TreeNode): void;
 }>();
 
 // Component state
@@ -20,6 +21,8 @@ const isFolder = computed(() => {
   return props.node.children && props.node.children.length > 0;
 });
 
+const isDraggable = computed(() => !isFolder.value);
+
 // Methods
 const handleClick = () => {
   if (isFolder.value) {
@@ -27,14 +30,22 @@ const handleClick = () => {
   }
   emit('node-click', props.node);
 };
+
+const onDragStart = (event: DragEvent) => {
+  if (isDraggable.value) {
+    emit('node-drag-start', event, props.node);
+  }
+}
 </script>
 
 <template>
   <div class="base-tree-item">
     <div
       class="item-content"
-      :class="{ folder: isFolder }"
+      :class="{ folder: isFolder, draggable: isDraggable }"
+      :draggable="isDraggable"
       @click.stop="handleClick"
+      @dragstart="onDragStart"
     >
       <BaseIcon
         v-if="isFolder"
@@ -51,6 +62,7 @@ const handleClick = () => {
         :key="child.id"
         :node="child"
         @node-click="$emit('node-click', $event)"
+        @node-drag-start="(...args) => $emit('node-drag-start', ...args)"
       />
     </div>
   </div>
@@ -72,6 +84,14 @@ const handleClick = () => {
 
 .item-content:hover {
   background-color: var(--color-bg-hover);
+}
+
+.item-content.draggable {
+  cursor: grab;
+}
+
+.item-content.draggable:active {
+  cursor: grabbing;
 }
 
 .item-content.folder {

@@ -4,29 +4,69 @@ import { Workflow, Folder } from '@src/models/workflow';
 const prisma = new PrismaClient();
 
 async function getTree(): Promise<Folder[]> {
-  const folders = await prisma.folder.findMany({
-    include: {
-      children: true,
-      workflows: true,
-    },
-    where: {
-      parentId: null,
-    },
+  // 1. Fetch all folders and all workflows in parallel
+  const [allFolders, allWorkflows] = await Promise.all([
+    prisma.folder.findMany(),
+    prisma.workflow.findMany()
+  ]);
+
+  // 2. Create a map for easy lookup
+  const folderMap = new Map<string, Folder>();
+  allFolders.forEach(f => {
+    const folderData = {
+      ...f,
+      parentId: f.parentId || undefined, // Convert null to undefined
+      children: [],
+      workflows: []
+    };
+    folderMap.set(f.id, folderData);
   });
 
-  const mapFolder = (folder: any): Folder => ({
-    id: folder.id,
-    name: folder.name,
-    children: folder.children.map(mapFolder),
-    workflows: folder.workflows.map((w: any) => ({
+  const rootFolders: Folder[] = [];
+
+  // 3. Populate children and workflows into the map
+  allFolders.forEach(f => {
+    if (f.parentId && folderMap.has(f.parentId)) {
+      folderMap.get(f.parentId)!.children.push(folderMap.get(f.id)!);
+    } else {
+      rootFolders.push(folderMap.get(f.id)!);
+    }
+  });
+
+  const rootWorkflows = allWorkflows
+    .filter(w => !w.folderId)
+    .map(w => ({
       id: w.id,
       name: w.name,
       description: w.description ?? undefined,
       graph: w.data as any,
-    })),
+    }));
+
+  allWorkflows.forEach(w => {
+    if (w.folderId && folderMap.has(w.folderId)) {
+      folderMap.get(w.folderId)!.workflows.push({
+        id: w.id,
+        name: w.name,
+        description: w.description ?? undefined,
+        graph: w.data as any,
+      });
+    }
   });
 
-  return folders.map(mapFolder);
+  // 4. If there are workflows without a folder, create a virtual root to hold them
+  if (rootWorkflows.length > 0) {
+    // We can create a "virtual" folder or just return them at the root level.
+    // Let's create a virtual folder for consistency.
+    const virtualRootFolder: Folder = {
+      id: 'root-workflows',
+      name: 'Workflows', // This name will appear in the UI
+      children: [],
+      workflows: rootWorkflows,
+    };
+    return [...rootFolders, virtualRootFolder];
+  }
+
+  return rootFolders;
 }
 
 async function getOne(id: string): Promise<Workflow | null> {

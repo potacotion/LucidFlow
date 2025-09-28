@@ -14,7 +14,13 @@ const WorkflowRoutes = Router();
  *     summary: Get all workflows
  *     responses:
  *       200:
- *         description: A list of workflows.
+ *         description: A tree structure of folders and workflows.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Folder'
  */
 WorkflowRoutes.get(Paths.Workflows.GetAll, async (_, res) => {
   const tree = await WorkflowService.getTree();
@@ -59,7 +65,7 @@ WorkflowRoutes.get(Paths.Workflows.Get, async (req, res) => {
  *         description: The created workflow.
  */
 WorkflowRoutes.post(Paths.Workflows.Add, async (req, res) => {
-  const { workflow } = req.body as { workflow: Workflow };
+  const workflow = req.body as Workflow;
   const newWorkflow = await WorkflowService.addOne(workflow);
   return res.status(201).json(newWorkflow);
 });
@@ -87,7 +93,7 @@ WorkflowRoutes.post(Paths.Workflows.Add, async (req, res) => {
  *         description: The updated workflow.
  */
 WorkflowRoutes.put(Paths.Workflows.Update, async (req, res) => {
-  const { workflow } = req.body as { workflow: Workflow };
+  const workflow = req.body as Workflow;
   const updatedWorkflow = await WorkflowService.updateOne(req.params.id, workflow);
   return res.json(updatedWorkflow);
 });

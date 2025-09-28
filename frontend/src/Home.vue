@@ -1,29 +1,18 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref } from 'vue'
 import AppLayout from '@/components/organisms/AppLayout.vue'
 import TopToolbar from '@/components/organisms/TopToolbar.vue'
 import LeftSidebar from '@/components/organisms/LeftSidebar.vue'
 import WorkflowCanvas from '@/components/organisms/WorkflowCanvas.vue'
 import ConfigPanel from '@/components/organisms/ConfigPanel.vue'
-import NodePalette from '@/components/organisms/NodePalette.vue' // Import the new component
+import NodePalette from '@/components/organisms/NodePalette.vue'
+import FileExplorer from '@/components/organisms/FileExplorer.vue'
 import BaseStack from '@/components/atoms/BaseStack.vue'
-import { NodeDefinitionsService, NodeDefinition } from '@/api'
-import { BaseToast } from '@/services/toast'
+import { useUIStore } from '@/stores/ui.store'
 
-// This logic is moved from the original Home.vue
-const nodeDefinitions = ref<NodeDefinition[]>([])
-onMounted(async () => {
-  try {
-    const definitions = await NodeDefinitionsService.getApiNodeDefinitions()
-    nodeDefinitions.value = definitions
-  } catch (error) {
-    BaseToast.error('Failed to fetch node definitions.')
-    console.error('Failed to fetch node definitions:', error)
-  }
-})
+const uiStore = useUIStore();
 
-// Panel State
-const activePanel = ref<'nodes' | 'files' | null>(null);
+const activePanel = ref<'nodes' | 'files' | null>(null); // null means no panel is active
 
 function handleTabClick(tab: 'nodes' | 'files') {
   if (activePanel.value === tab) {
@@ -44,13 +33,13 @@ function handleTabClick(tab: 'nodes' | 'files') {
     </template>
     <template #panel>
       <NodePalette v-if="activePanel === 'nodes'" />
-      <!-- Add FileExplorer here when it's created -->
+      <FileExplorer v-if="activePanel === 'files'" />
     </template>
 
     <!-- Main Content Slot -->
     <BaseStack direction="row" class="main-content-stack" gap="none">
-      <WorkflowCanvas :node-definitions="nodeDefinitions" />
-      <ConfigPanel />
+      <WorkflowCanvas />
+      <ConfigPanel v-if="uiStore.isConfigPanelVisible" />
     </BaseStack>
   </AppLayout>
 </template>
