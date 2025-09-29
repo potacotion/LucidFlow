@@ -7,11 +7,15 @@ export { CancelablePromise, CancelError } from './core/CancelablePromise';
 export { OpenAPI } from './core/OpenAPI';
 export type { OpenAPIConfig } from './core/OpenAPI';
 
+export type { Folder } from './models/Folder';
 export type { Graph } from './models/Graph';
 export { NodeDefinition } from './models/NodeDefinition';
 export { PortDefinition } from './models/PortDefinition';
 export { PropertyDefinition } from './models/PropertyDefinition';
+export type { UserLoginDto } from './models/UserLoginDto';
+export type { UserRegisterDto } from './models/UserRegisterDto';
 export type { Workflow } from './models/Workflow';
 
+export { AuthService } from './services/AuthService';
 export { NodeDefinitionsService } from './services/NodeDefinitionsService';
 export { WorkflowsService } from './services/WorkflowsService';

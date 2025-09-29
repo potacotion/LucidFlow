@@ -188,6 +188,31 @@ export const useWorkflowStore = defineStore('workflow', () => {
       return;
     }
 
+    // --- [NEW] Backend Logic Consistency Validation ---
+
+    const targetHasExistingConnection = edges.value.some(
+      edge => edge.target.nodeId === connection.target && edge.target.portName === targetPortName
+    );
+
+    if (targetHasExistingConnection) {
+      // Rule 1: Data ports only allow one input connection.
+      if (targetPort.type === 'data') {
+        BaseToast.warning(`Invalid connection: Data port '${targetPort.label}' can only have one input.`);
+        return;
+      }
+
+      // Rule 2: Control ports on non-join nodes only allow one input connection.
+      if (targetPort.type === 'control') {
+        const targetNodeDefinition = nodeDefinitions.value[targetNode.type];
+        if (targetNodeDefinition && targetNodeDefinition.archetype !== 'join') {
+          BaseToast.warning(`Invalid connection: Port '${targetPort.label}' on a non-join node can only have one control input.`);
+          return;
+        }
+      }
+    }
+
+    // --- End of New Validation ---
+
     // Handle based on port type
     if (sourcePort.type === 'data') {
       // If either port is of type 'any', allow the connection

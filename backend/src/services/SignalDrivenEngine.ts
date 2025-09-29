@@ -41,9 +41,28 @@ class GraphWalker {
   }
 
   findUpstreamEdge(targetNodeId: string, targetPortName: string): Edge | undefined {
-    return this.edges.find(edge => 
-      edge.target.nodeId === targetNodeId && edge.target.portName === targetPortName
+    const targetNode = this.findNodeById(targetNodeId);
+    if (!targetNode) return undefined;
+
+    const nodeDef = getNodeDefinition(targetNode.type);
+    const portDef = (targetNode.ports || nodeDef.ports).find(p => p.name === targetPortName);
+
+    if (!portDef) return undefined; // Port not found on instance or definition
+
+    const matchingEdges = this.edges.filter(edge =>
+        edge.target.nodeId === targetNodeId && edge.target.portName === targetPortName
     );
+
+    if (matchingEdges.length > 1) {
+        if (portDef.type === 'data') {
+            throw new Error(`[Engine Integrity Error] Data port ${targetNodeId}.${targetPortName} has more than one connection. Data inputs must have exactly one connection.`);
+        }
+        if (portDef.type === 'control' && nodeDef.archetype !== 'join') {
+            throw new Error(`[Engine Integrity Error] Control port ${targetNodeId}.${targetPortName} on a non-join node ('${nodeDef.archetype}') has more than one connection.`);
+        }
+    }
+
+    return matchingEdges[0];
   }
 }
 
@@ -155,7 +174,6 @@ export class SignalDrivenEngine {
     
     const edge = this.graphWalker.findUpstreamEdge(targetNode.id, targetPortName);
     if (!edge) {
-      // [FIX] Use ports from the instance if they exist, otherwise fallback to the definition.
       const portsToSearch = targetNode.ports || getNodeDefinition(targetNode.type).ports;
       const portDef = portsToSearch.find((p: PortDefinition) => p.name === targetPortName);
       const defaultValue = portDef?.defaultValue;

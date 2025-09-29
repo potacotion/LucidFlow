@@ -1,73 +1,75 @@
+import { PrismaClient, User } from '@prisma/client';
 import { RouteError } from '@src/common/util/route-errors';
 import HttpStatusCodes from '@src/common/constants/HttpStatusCodes';
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
+import EnvVars from '@src/common/constants/EnvVars';
+import { UserLoginDto, UserRegisterDto } from '@src/models/UserDto';
 
-import UserRepo from '@src/repos/UserRepo';
-import { IUser } from '@src/models/User';
+const prisma = new PrismaClient();
 
-
-/******************************************************************************
-                                Constants
-******************************************************************************/
-
-export const USER_NOT_FOUND_ERR = 'User not found';
-
-
-/******************************************************************************
-                                Functions
-******************************************************************************/
+const SALT_ROUNDS = 10;
 
 /**
- * Get all users.
+ * Register a new user.
  */
-function getAll(): Promise<IUser[]> {
-  return UserRepo.getAll();
-}
+async function register(userData: UserRegisterDto): Promise<Omit<User, 'pwdHash'>> {
+  const { email, name, password } = userData;
 
-/**
- * Add one user.
- */
-function addOne(user: IUser): Promise<void> {
-  return UserRepo.add(user);
-}
-
-/**
- * Update one user.
- */
-async function updateOne(user: IUser): Promise<void> {
-  const persists = await UserRepo.persists(user.id);
-  if (!persists) {
-    throw new RouteError(
-      HttpStatusCodes.NOT_FOUND,
-      USER_NOT_FOUND_ERR,
-    );
+  const existingUser = await prisma.user.findUnique({ where: { email } });
+  if (existingUser) {
+    throw new RouteError(HttpStatusCodes.CONFLICT, 'User with this email already exists.');
   }
-  // Return user
-  return UserRepo.update(user);
+
+  const pwdHash = await bcrypt.hash(password, SALT_ROUNDS);
+
+  const user = await prisma.user.create({
+    data: {
+      email,
+      name,
+      pwdHash,
+      settings: {
+        create: {
+          data: {}, // Initialize with empty settings
+        },
+      },
+    },
+  });
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { pwdHash: _, ...userWithoutPassword } = user;
+  return userWithoutPassword;
 }
 
 /**
- * Delete a user by their id.
+ * Log in a user.
  */
-async function _delete(id: number): Promise<void> {
-  const persists = await UserRepo.persists(id);
-  if (!persists) {
-    throw new RouteError(
-      HttpStatusCodes.NOT_FOUND,
-      USER_NOT_FOUND_ERR,
-    );
+async function login(credentials: UserLoginDto): Promise<{ token: string }> {
+  const { email, password } = credentials;
+
+  const user = await prisma.user.findUnique({ where: { email } });
+  if (!user) {
+    throw new RouteError(HttpStatusCodes.UNAUTHORIZED, 'Invalid email or password.');
   }
-  // Delete user
-  return UserRepo.delete(id);
+
+  const isPasswordValid = await bcrypt.compare(password, user.pwdHash);
+  if (!isPasswordValid) {
+    throw new RouteError(HttpStatusCodes.UNAUTHORIZED, 'Invalid email or password.');
+  }
+
+  const token = jwt.sign(
+    { 
+      id: user.id, 
+      role: user.role 
+    },
+    EnvVars.Jwt.Secret,
+    { expiresIn: EnvVars.Jwt.Exp },
+  );
+
+  return { token };
 }
-
-
-/******************************************************************************
-                                Export default
-******************************************************************************/
 
 export default {
-  getAll,
-  addOne,
-  updateOne,
-  delete: _delete,
+  register,
+  login,
 } as const;
