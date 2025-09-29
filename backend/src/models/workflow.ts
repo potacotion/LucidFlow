@@ -219,6 +219,12 @@ export interface NodeInstance {
   position: { x: number; y: number };
 
   /**
+   * [新增] 存储此实例的所有端口，包括静态和动态添加的。
+   * 这会覆盖 NodeDefinition 中的端口定义。
+   */
+  ports?: PortDefinition[];
+
+  /**
    * 存储所有用户配置的值。
    * key 对应 PropertyDefinition.name。
    * - 对于 'compound' 节点, 此处可存放端口映射 (portMappings)。

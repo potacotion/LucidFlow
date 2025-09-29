@@ -82,16 +82,15 @@ export class SignalDrivenEngine {
 
     await this.loop();
 
-    const outputNodes = graph.nodes.filter(n => n.type === 'graph/output');
-    const graphResult: NodeOutput = {};
-    for (const outNode of outputNodes) {
-        const portName = outNode.propertyValues?.['parentPortName'];
-        if (portName) {
-            const finalValue = await this.resolveInputData(outNode, 'input', {nodeId: '', portName: '', dataType: 'control'});
-            graphResult[portName] = finalValue;
-        }
+    const endNodes = graph.nodes.filter(n => n.type === 'special/end');
+    const finalResults: NodeOutput = {};
+    for (const endNode of endNodes) {
+        const resultValue = await this.resolveInputData(endNode, 'result', {nodeId: '', portName: '', dataType: 'control'});
+        // Use the node's label or a default name for the result key
+        const resultKey = endNode.label || `output_${endNode.id}`;
+        finalResults[resultKey] = resultValue;
     }
-    return graphResult;
+    return finalResults;
   }
 
   private _hasActiveTasks(): boolean {
@@ -128,7 +127,10 @@ export class SignalDrivenEngine {
   private async resolveAllInputs(node: NodeInstance, signal: Signal): Promise<{ [key: string]: any }> {
     const inputs: { [key: string]: any } = {};
     const def = getNodeDefinition(node.type);
-    const dataInputPorts = def.ports.filter((p: PortDefinition) => p.type === 'data' && p.direction === 'in');
+    
+    // [FIX] Use ports from the instance if they exist, otherwise fallback to the definition.
+    const portsToProcess = node.ports || def.ports;
+    const dataInputPorts = portsToProcess.filter((p: PortDefinition) => p.type === 'data' && p.direction === 'in');
 
     for (const port of dataInputPorts) {
       // Priority 1: Direct data from an incoming data signal
@@ -139,10 +141,12 @@ export class SignalDrivenEngine {
         inputs[port.name] = await this.resolveInputData(node, port.name, signal);
       }
     }
+    console.log(`[DEBUG] Resolved all inputs for ${node.id}:`, inputs);
     return inputs;
   }
   
   private async resolveInputData(targetNode: NodeInstance, targetPortName:string, signal: Signal): Promise<any> {
+    console.log(`[DEBUG] Resolving input for ${targetNode.id}.${targetPortName}`);
     // Context resolution (e.g., for loops)
     const context = this.resultsCache.get('context') as any;
     if (context?.loop && (targetPortName === 'item' || targetPortName === 'index')) {
@@ -151,15 +155,21 @@ export class SignalDrivenEngine {
     
     const edge = this.graphWalker.findUpstreamEdge(targetNode.id, targetPortName);
     if (!edge) {
-      const portDef = getNodeDefinition(targetNode.type).ports.find((p: PortDefinition) => p.name === targetPortName);
-      return portDef?.defaultValue;
+      // [FIX] Use ports from the instance if they exist, otherwise fallback to the definition.
+      const portsToSearch = targetNode.ports || getNodeDefinition(targetNode.type).ports;
+      const portDef = portsToSearch.find((p: PortDefinition) => p.name === targetPortName);
+      const defaultValue = portDef?.defaultValue;
+      console.log(`[DEBUG] No upstream edge found for ${targetNode.id}.${targetPortName}. Port definition:`, portDef, `Using default value: ${defaultValue}`);
+      return defaultValue;
     }
   
     const sourceNodeId = edge.source.nodeId;
     const sourcePortName = edge.source.portName;
   
     if (this.resultsCache.has(sourceNodeId)) {
-      return this.resultsCache.get(sourceNodeId)?.[sourcePortName];
+      const cachedValue = this.resultsCache.get(sourceNodeId)?.[sourcePortName];
+      console.log(`[DEBUG] Found cached value for ${sourceNodeId}.${sourcePortName}: ${cachedValue}`);
+      return cachedValue;
     }
   
     const sourceNode = this.graphWalker.findNodeById(sourceNodeId);
@@ -185,6 +195,7 @@ export class SignalDrivenEngine {
   
     const inputsForPureNode = await this.resolveAllInputs(sourceNode, signal);
     const outputs: NodeOutput = await NodeExecutor.executeNodeLogic(sourceNode, inputsForPureNode);
+    console.log(`[DEBUG] Recursively executed pure node ${sourceNodeId}. Outputs:`, outputs);
 
     this.resultsCache.set(sourceNodeId, outputs);
     return outputs[sourcePortName];

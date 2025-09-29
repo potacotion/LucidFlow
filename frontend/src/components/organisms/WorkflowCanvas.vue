@@ -3,6 +3,7 @@ import { computed, watch } from 'vue';
 import type { Node, Edge, NodeChange, EdgeChange } from '@vue-flow/core';
 import { VueFlow, useVueFlow } from '@vue-flow/core';
 import { Background } from '@vue-flow/background';
+import { MiniMap } from '@vue-flow/minimap';
 import type { NodeDefinition } from '@/types/workflow';
 
 // 本地组件
@@ -18,6 +19,7 @@ import { stringToColor } from '@/utils/color';
 // Vue-Flow 样式
 import '@vue-flow/core/dist/style.css';
 import '@vue-flow/core/dist/theme-default.css';
+import '@vue-flow/minimap/dist/style.css';
 
 const { onConnect, project, onNodeClick, onPaneClick, removeEdges, getEdges, onNodesChange, onEdgesChange } = useVueFlow();
 const uiStore = useUIStore();
@@ -160,6 +162,7 @@ onEdgesChange((changes: EdgeChange[]) => {
     @drop="onDrop"
   >
     <Background />
+    <MiniMap pannable zoomable />
     <template #node-basenode="basenodeProps">
       <basenode v-bind="basenodeProps" />
     </template>

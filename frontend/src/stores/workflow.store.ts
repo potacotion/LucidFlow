@@ -190,6 +190,12 @@ export const useWorkflowStore = defineStore('workflow', () => {
 
     // Handle based on port type
     if (sourcePort.type === 'data') {
+      // If either port is of type 'any', allow the connection
+      if (sourcePort.dataType === 'any' || targetPort.dataType === 'any') {
+        addEdge(connection, sourcePort.dataType);
+        return;
+      }
+
       // Data ports require matching, existing data types
       if (!sourcePort.dataType || !targetPort.dataType) {
         BaseToast.error("Connection failed: Data port is missing a data type.");
@@ -242,8 +248,13 @@ export const useWorkflowStore = defineStore('workflow', () => {
    */
   function loadWorkflow(workflow: any) {
     // TODO: Add proper validation for the incoming workflow object
-    nodes.value = workflow.nodes || [];
-    edges.value = workflow.edges || [];
+    if (workflow && workflow.graph) {
+      nodes.value = workflow.graph.nodes || [];
+      edges.value = workflow.graph.edges || [];
+    } else {
+      nodes.value = [];
+      edges.value = [];
+    }
     currentWorkflowId.value = workflow.id;
     currentWorkflowName.value = workflow.name;
     uiStore.hideConfigPanel(); // Hide panel after loading

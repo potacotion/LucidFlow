@@ -14,6 +14,9 @@ importers:
       '@vue-flow/core':
         specifier: ^1.46.3
         version: 1.46.3(vue@3.5.21(typescript@5.8.3))
+      '@vue-flow/minimap':
+        specifier: ^1.5.4
+        version: 1.5.4(@vue-flow/core@1.46.3(vue@3.5.21(typescript@5.8.3)))(vue@3.5.21(typescript@5.8.3))
       '@vueuse/core':
         specifier: ^13.9.0
         version: 13.9.0(vue@3.5.21(typescript@5.8.3))
@@ -864,6 +867,12 @@ packages:
   '@vue-flow/core@1.46.3':
     resolution: {integrity: sha512-OiR3vrfxvgBmR6N5zw6H4eRvs/51hj3orMktqw4b/nWq0BydWlY+PquTe/Kcw6A7RRqPu51XqOOvUm5aPw5fcg==}
     peerDependencies:
+      vue: ^3.3.0
+
+  '@vue-flow/minimap@1.5.4':
+    resolution: {integrity: sha512-l4C+XTAXnRxsRpUdN7cAVFBennC1sVRzq4bDSpVK+ag7tdMczAnhFYGgbLkUw3v3sY6gokyWwMl8CDonp8eB2g==}
+    peerDependencies:
+      '@vue-flow/core': ^1.23.0
       vue: ^3.3.0
 
   '@vue/babel-helper-vue-transform-on@1.5.0':
@@ -3144,6 +3153,13 @@ snapshots:
       vue: 3.5.21(typescript@5.8.3)
     transitivePeerDependencies:
       - '@vue/composition-api'
+
+  '@vue-flow/minimap@1.5.4(@vue-flow/core@1.46.3(vue@3.5.21(typescript@5.8.3)))(vue@3.5.21(typescript@5.8.3))':
+    dependencies:
+      '@vue-flow/core': 1.46.3(vue@3.5.21(typescript@5.8.3))
+      d3-selection: 3.0.0
+      d3-zoom: 3.0.0
+      vue: 3.5.21(typescript@5.8.3)
 
   '@vue/babel-helper-vue-transform-on@1.5.0': {}
 

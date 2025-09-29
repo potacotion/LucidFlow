@@ -13,7 +13,7 @@ export const NODE_DEFINITIONS = new Map<string, NodeDefinition>([
         description: '输出一个在属性中定义的固定值',
         archetype: 'pure',
         ports: [
-            { name: 'value', label: '值', type: 'data', direction: 'out', dataType: 'number' },
+            { name: 'value', label: '值', type: 'data', direction: 'out', dataType: 'any' },
         ],
         properties: [
             {
@@ -37,17 +37,19 @@ export const NODE_DEFINITIONS = new Map<string, NodeDefinition>([
             },
         ],
         run: async ({ params }) => {
+            console.log(`[DEBUG] Constant node received params:`, params);
             const { dataType, value } = params;
-            let parsedValue: any = value;
+            let parsedValue: any = params.value;
             try {
-                if (dataType === 'number') {
-                    parsedValue = Number(value);
-                } else if (dataType === 'boolean') {
-                    parsedValue = value === 'true' || value === '1';
+                if (params.dataType === 'number') {
+                    parsedValue = Number(params.value);
+                } else if (params.dataType === 'boolean') {
+                    parsedValue = params.value === 'true' || params.value === '1';
                 }
             } catch (error) {
                 console.error('Error parsing constant value:', error);
             }
+            console.log(`[DEBUG] Constant node returning value: ${parsedValue}`);
             return { value: parsedValue };
         },
     }],
@@ -108,7 +110,17 @@ export const NODE_DEFINITIONS = new Map<string, NodeDefinition>([
         ],
         run: async () => ({}),
     }],
-    
+    ['special/end', {
+        type: 'special/end',
+        label: '结束',
+        description: '工作流的终点',
+        archetype: 'action',
+        ports: [
+            { name: 'in', label: 'In', type: 'control', direction: 'in' },
+            { name: 'result', label: 'Result', type: 'data', direction: 'in', dataType: 'any' },
+        ],
+        run: async () => ({}),
+    }],
     // Note: 'special_LoopIterator' is an internal concept.
     // In the new model, we'd handle this within the 'loop' archetype's execution logic.
     // For now, let's define it as a pure node that would be created inside a loop's body.
@@ -482,6 +494,20 @@ export const NODE_DEFINITIONS = new Map<string, NodeDefinition>([
                     };
                 }
             };
+        },
+    }],
+    ['debug/number', {
+        type: 'debug/number',
+        label: 'Debug Number',
+        description: '当控制流触发时，在后端控制台打印输入的数字',
+        archetype: 'action',
+        ports: [
+            { name: 'in', label: 'In', type: 'control', direction: 'in' },
+            { name: 'number', label: 'Number', type: 'data', direction: 'in', dataType: 'number' },
+        ],
+        run: async ({ input }) => {
+            console.log('Debug Number Node Executed:', input.number);
+            return {};
         },
     }],
 ]);
