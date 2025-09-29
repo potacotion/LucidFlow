@@ -4,11 +4,14 @@ import BaseStack from '@/components/atoms/BaseStack.vue'
 import BaseButton from '@/components/atoms/BaseButton.vue'
 import BaseIcon from '@/components/atoms/BaseIcon.vue'
 import BaseHeading from '@/components/atoms/BaseHeading.vue'
+import BorderedImmersiveButton from '@/components/molecules/BorderedImmersiveButton.vue'
+import SaveButton from '@/components/molecules/SaveButton.vue'
 </script>
 
 <template>
   <BaseBox
-    :padding="['sp-2', 'sp-3']"
+    py="xs"
+    px="xs"
     shadow="--c-shadow-base"
     radius="none"
     class="top-toolbar"
@@ -18,14 +21,11 @@ import BaseHeading from '@/components/atoms/BaseHeading.vue'
       <div class="toolbar-section left">
         <BaseHeading :level="6">LucidFlow</BaseHeading>
         <BaseStack gap="base" direction="row" class="button-group">
-          <BaseButton tooltip="run">
+          <BorderedImmersiveButton tooltip="run">
             <BaseIcon icon="fa-solid fa-play" />
             Run
-          </BaseButton>
-          <BaseButton>
-            <BaseIcon icon="fa-solid fa-save" />
-            Save
-          </BaseButton>
+          </BorderedImmersiveButton>
+          <SaveButton />
         </BaseStack>
       </div>
 
@@ -52,7 +52,7 @@ import BaseHeading from '@/components/atoms/BaseHeading.vue'
   z-index: 1;
   grid-area: topbar;
   /* border-bottom: 1px solid var(--c-border-base); */
-  background-color: var(--c-background); /* Changed from --color-bg-base for better contrast */
+  background-color: var(--c-fill-extra-light); /* Changed from --color-bg-base for better contrast */
 }
 
 .button-group {

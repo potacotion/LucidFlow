@@ -84,7 +84,7 @@ const handleSaveAs = () => {
 
 .main-button:hover,
 .trigger-button:hover {
-  background-color: var(--c-fill-lighter);
+  /* background-color: var(--c-fill-lighter); */
 }
 
 .divider {
@@ -113,7 +113,7 @@ const handleSaveAs = () => {
 }
 
 .dropdown-item:hover {
-  background-color: var(--c-fill-light);
+  /* background-color: var(--c-fill-light); */
 }
 
 .fade-enter-active,

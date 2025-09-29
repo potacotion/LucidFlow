@@ -30,11 +30,13 @@ const props = withDefaults(defineProps<Props>(), {
 .immersive-button {
   color: var(--c-text-primary);
   transition: color 150ms ease-in-out, background-color 150ms ease-in-out;
+  /* border: 1px solid var(--c-border-base); */
 }
 
 .immersive-button:hover,
 .immersive-button:focus {
   color: var(--c-primary);
-  background-color: var(--c-fill-light);
 }
+
+
 </style>
