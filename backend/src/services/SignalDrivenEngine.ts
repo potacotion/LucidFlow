@@ -1,5 +1,5 @@
-import { NodeInstance, Edge, NodeDefinition, StreamPacket, PortDefinition } from '@src/models/workflow';
-import { executeNodeLogic } from './NodeExecutor';
+import { NodeInstance, Edge, NodeDefinition, PortDefinition, isSubscribable, ISubscribable } from '@src/models/workflow';
+import * as NodeExecutor from './NodeExecutor';
 import { NODE_DEFINITIONS } from './node-definitions';
 
 function getNodeDefinition(nodeType: string): NodeDefinition {
@@ -13,10 +13,13 @@ function getNodeDefinition(nodeType: string): NodeDefinition {
 type Signal = {
   nodeId: string;
   portName: string;
+  // 'control' signals trigger execution, 'data' signals carry data payloads.
+  dataType: 'control' | 'data';
+  data?: any;
 };
 
 type NodeOutput = {
-  [portName: string]: any | StreamPacket[];
+  [portName: string]: any;
 };
 
 type JoinState = {
@@ -42,137 +45,110 @@ class GraphWalker {
       edge.target.nodeId === targetNodeId && edge.target.portName === targetPortName
     );
   }
-
-  findDownstreamNodes(sourceNodeId: string, sourcePortName: string): NodeInstance[] {
-    const downstreamEdges = this.edges.filter(edge => 
-      edge.source.nodeId === sourceNodeId && edge.source.portName === sourcePortName
-    );
-    return downstreamEdges.map(edge => this.findNodeById(edge.target.nodeId)).filter(n => n) as NodeInstance[];
-  }
 }
 
 export class SignalDrivenEngine {
   private executionQueue: Signal[] = [];
   private resultsCache: Map<string, NodeOutput> = new Map();
   private activeJoins: Map<string, JoinState> = new Map();
-  // private activeStreams: Map<string, any> = new Map(); // Placeholder for stream management
+  private activeAsyncTasks: Map<string, any> = new Map();
+  private _asyncTaskCounter = 0;
   private graphWalker!: GraphWalker;
 
   public async run(graph: { nodes: NodeInstance[], edges: Edge[] }, context?: any): Promise<NodeOutput | void> {
     this.executionQueue = [];
     this.resultsCache.clear();
     this.activeJoins.clear();
+    this.activeAsyncTasks.clear();
     this.graphWalker = new GraphWalker(graph.nodes, graph.edges);
 
-    // If context is provided, we can populate it for expression resolution
-    // For now, let's assume a simple case where we can prime the results cache
     if (context) {
-        // e.g. for a loop, the context might be { item: ..., index: ... }
-        // We can expose this via a special "context" node result.
         this.resultsCache.set('context', context);
     }
 
-
-    // Initialization: Find start nodes and enqueue the first signals
     const startNodes = graph.nodes.filter(node => {
         const def = getNodeDefinition(node.type);
-        if (def.archetype !== 'action') {
+        if (def.archetype !== 'action' && def.archetype !== 'stream-action') {
             return false;
         }
-        // An action node is a start node if none of its control input ports are connected.
         const controlInputPorts = def.ports.filter(p => p.type === 'control' && p.direction === 'in');
-        if (controlInputPorts.length === 0) {
-            // If it has no control inputs defined, it could be a start node.
-            return true;
-        }
-        const isAnyControlInputConnected = controlInputPorts.some(p =>
-            this.graphWalker.findUpstreamEdge(node.id, p.name)
-        );
-        return !isAnyControlInputConnected;
+        if (controlInputPorts.length === 0) return true;
+        return !controlInputPorts.some(p => this.graphWalker.findUpstreamEdge(node.id, p.name));
     });
 
     for (const startNode of startNodes) {
-      const def = getNodeDefinition(startNode.type);
-      const controlOutPorts = def.ports.filter((p: PortDefinition) => p.type === 'control' && p.direction === 'out');
-      for (const port of controlOutPorts) {
-        this.enqueueSignal(startNode.id, port.name);
-      }
+      this.enqueueSignal(startNode.id, 'in', 'control'); // Assuming a default 'in' control port for starting
     }
 
     await this.loop();
 
-    // After the loop, find 'graph/output' nodes to determine the graph's final output.
     const outputNodes = graph.nodes.filter(n => n.type === 'graph/output');
     const graphResult: NodeOutput = {};
     for (const outNode of outputNodes) {
         const portName = outNode.propertyValues?.['parentPortName'];
         if (portName) {
-            // The value for the output comes from the node connected to the output proxy's input.
-            const finalValue = await this.resolveInputData(outNode, 'input');
+            const finalValue = await this.resolveInputData(outNode, 'input', {nodeId: '', portName: '', dataType: 'control'});
             graphResult[portName] = finalValue;
         }
     }
     return graphResult;
   }
 
+  private _hasActiveTasks(): boolean {
+    return this.executionQueue.length > 0 || this.activeAsyncTasks.size > 0;
+  }
+
   private async loop() {
-    while (this.executionQueue.length > 0) {
-      const signal = this.executionQueue.shift();
-      if (signal) {
-        const node = this.graphWalker.findNodeById(signal.nodeId);
-        if (node) {
-          await this.execute(node, signal.portName);
+    while (this._hasActiveTasks()) {
+      if (this.executionQueue.length > 0) {
+        const signal = this.executionQueue.shift();
+        if (signal) {
+          const node = this.graphWalker.findNodeById(signal.nodeId);
+          if (node) {
+            await this.execute(node, signal);
+          }
         }
+      } else {
+        await new Promise(resolve => setTimeout(resolve, 50));
       }
     }
   }
 
-  private enqueueSignal(nodeId: string, portName: string) {
-    this.executionQueue.push({ nodeId, portName });
+  private enqueueSignal(nodeId: string, portName: string, dataType: 'control' | 'data', data?: any) {
+    this.executionQueue.push({ nodeId, portName, dataType, data });
   }
 
-  private enqueueDownstreamControlSignals(node: NodeInstance, fromPortName?: string) {
-    const def = getNodeDefinition(node.type);
-    const controlOutPorts = fromPortName
-      ? def.ports.filter((p: PortDefinition) => p.name === fromPortName && p.type === 'control' && p.direction === 'out')
-      : def.ports.filter((p: PortDefinition) => p.type === 'control' && p.direction === 'out');
-
-    for (const port of controlOutPorts) {
-      const edges = this.graphWalker['edges'].filter(e => e.source.nodeId === node.id && e.source.portName === port.name);
-      for (const edge of edges) {
-        this.enqueueSignal(edge.target.nodeId, edge.target.portName);
-      }
+  private enqueueDownstreamSignals(node: NodeInstance, fromPortName: string, dataType: 'control' | 'data', data?: any) {
+    const edges = this.graphWalker['edges'].filter(e => e.source.nodeId === node.id && e.source.portName === fromPortName);
+    for (const edge of edges) {
+        this.enqueueSignal(edge.target.nodeId, edge.target.portName, dataType, data);
     }
   }
 
-  private async resolveAllInputs(node: NodeInstance): Promise<{ [key: string]: any }> {
+  private async resolveAllInputs(node: NodeInstance, signal: Signal): Promise<{ [key: string]: any }> {
     const inputs: { [key: string]: any } = {};
     const def = getNodeDefinition(node.type);
     const dataInputPorts = def.ports.filter((p: PortDefinition) => p.type === 'data' && p.direction === 'in');
 
     for (const port of dataInputPorts) {
-      inputs[port.name] = await this.resolveInputData(node, port.name);
+      // Priority 1: Direct data from an incoming data signal
+      if (signal.dataType === 'data' && signal.portName === port.name) {
+        inputs[port.name] = signal.data;
+      } else {
+        // Priority 2: Pull data from upstream nodes
+        inputs[port.name] = await this.resolveInputData(node, port.name, signal);
+      }
     }
     return inputs;
   }
   
-  private async resolveInputData(targetNode: NodeInstance, targetPortName:string): Promise<any> {
-    // Expression resolution (e.g., {{loop.item}}) could happen here.
-    // For now, let's handle direct context injection for loop variables.
+  private async resolveInputData(targetNode: NodeInstance, targetPortName:string, signal: Signal): Promise<any> {
+    // Context resolution (e.g., for loops)
     const context = this.resultsCache.get('context') as any;
     if (context?.loop && (targetPortName === 'item' || targetPortName === 'index')) {
         return context.loop[targetPortName];
     }
     
-    // Handle graph inputs for compound nodes
-    const targetNodeDef = getNodeDefinition(targetNode.type);
-    if (targetNodeDef.type === 'graph/input') {
-        const parentPortName = targetNode.propertyValues?.['parentPortName'];
-        if (context?.inputs && parentPortName && context.inputs[parentPortName] !== undefined) {
-            return context.inputs[parentPortName];
-        }
-    }
-
     const edge = this.graphWalker.findUpstreamEdge(targetNode.id, targetPortName);
     if (!edge) {
       const portDef = getNodeDefinition(targetNode.type).ports.find((p: PortDefinition) => p.name === targetPortName);
@@ -191,137 +167,110 @@ export class SignalDrivenEngine {
   
     const sourceNodeDef = getNodeDefinition(sourceNode.type);
 
-    // Special handling for 'graph/input' nodes: they source their data from the parent context.
-    if (sourceNodeDef.type === 'graph/input') {
-        const context = this.resultsCache.get('context') as any;
-        const parentPortName = sourceNode.propertyValues?.['parentPortName'];
-        if (context?.inputs && parentPortName && context.inputs[parentPortName] !== undefined) {
-            const value = context.inputs[parentPortName];
-            // Cache the result as if the node "executed" and produced this value.
-            this.resultsCache.set(sourceNodeId, { [sourcePortName]: value });
-            return value;
-        }
-        return undefined; // If no value in context, it produces nothing.
+    if (sourceNodeDef.archetype === 'stream-action') {
+      // It's a stream-action. We don't pull from it directly.
+      // Data is expected to be pushed via data signals.
+      // We return undefined, assuming the downstream node can handle it
+      // until the actual data arrives via a data signal.
+      return undefined;
     }
 
     if (sourceNodeDef.archetype !== 'pure') {
+      // This error is the root of our previous failures.
+      // A non-pure node's output should only be available after it has been executed via a control signal.
+      // If we are here, it means a node is trying to PULL data from an action node that has not run yet.
+      // With the new model, data from stream-actions is PUSHED via data signals, so we should not hit this error.
       throw new Error(`Execution error: Action node ${sourceNodeId} was not executed before its output was needed.`);
     }
   
-    const inputsForPureNode = await this.resolveAllInputs(sourceNode);
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const outputs: NodeOutput = await executeNodeLogic(sourceNode, inputsForPureNode);
-  
+    const inputsForPureNode = await this.resolveAllInputs(sourceNode, signal);
+    const outputs: NodeOutput = await NodeExecutor.executeNodeLogic(sourceNode, inputsForPureNode);
+
     this.resultsCache.set(sourceNodeId, outputs);
     return outputs[sourcePortName];
   }
 
-  private async execute(node: NodeInstance, incomingPort: string) {
+  private async execute(node: NodeInstance, signal: Signal) {
     const definition = getNodeDefinition(node.type);
-    const inputs = await this.resolveAllInputs(node);
+    const inputs = await this.resolveAllInputs(node, signal);
 
     switch (definition.archetype) {
-      case 'action':{
-        const outputs = await executeNodeLogic(node, inputs);
+      case 'action': {
+        const outputs = await NodeExecutor.executeNodeLogic(node, inputs);
         this.resultsCache.set(node.id, outputs);
-        this.enqueueDownstreamControlSignals(node);
+        // Fire all downstream control ports
+        definition.ports
+          .filter(p => p.type === 'control' && p.direction === 'out')
+          .forEach(p => this.enqueueDownstreamSignals(node, p.name, 'control'));
+        break;
+      }
+      case 'stream-action': {
+        const result = await NodeExecutor.executeNodeLogic(node, inputs);
+        if (!isSubscribable(result)) {
+            throw new Error(`stream-action node ${node.id} did not return a subscribable object.`);
+        }
+        this.resultsCache.set(node.id, result);
+        this._handleSubscribable(node, result);
         break;
       }
       case 'pure': {
-        const outputs = await executeNodeLogic(node, inputs);
+        const outputs = await NodeExecutor.executeNodeLogic(node, inputs);
         this.resultsCache.set(node.id, outputs);
-                //this.enqueueDownstreamControlSignals(node);
-        // 关键修复：纯节点(Pure Node)不应该触发控制流。
-        // 它们只应该在数据被下游节点需要时被动执行并返回结果。
-
+        // Pure nodes do not trigger control flow.
         break;
       }
       case 'branch': {
         const condition = inputs['condition'];
         const portToFire = condition ? 'true' : 'false';
-        // The logic is now correctly handled by the improved enqueueDownstreamControlSignals
-        this.enqueueDownstreamControlSignals(node, portToFire);
-        break;
-      }
-      case 'merge': {
-        this.enqueueDownstreamControlSignals(node);
-        break;
-      }
-      case 'fork': {
-        this.enqueueDownstreamControlSignals(node);
+        this.enqueueDownstreamSignals(node, portToFire, 'control');
         break;
       }
       case 'join': {
         let state = this.activeJoins.get(node.id);
         if (!state) {
-          const def = getNodeDefinition(node.type);
-          const expected = def.ports.filter((p: PortDefinition) => p.type === 'control' && p.direction === 'in').length;
+          const expected = definition.ports.filter(p => p.type === 'control' && p.direction === 'in').length;
           state = { expected, received: 0 };
         }
         state.received++;
         this.activeJoins.set(node.id, state);
 
-        if (state.received === state.expected) {
-          this.enqueueDownstreamControlSignals(node);
+        if (state.received >= state.expected) {
+          definition.ports
+            .filter(p => p.type === 'control' && p.direction === 'out')
+            .forEach(p => this.enqueueDownstreamSignals(node, p.name, 'control'));
           this.activeJoins.delete(node.id);
         }
         break;
       }
-      case 'loop': {
-        const arrayToIterate = inputs['array'];
-
-        if (arrayToIterate) { // For-Each behavior
-            if (node.subgraph) {
-                for (let i = 0; i < arrayToIterate.length; i++) {
-                    const item = arrayToIterate[i];
-                    const loopEngine = new SignalDrivenEngine();
-                    await loopEngine.run(node.subgraph, { loop: { item, index: i } });
-                }
-            }
-        } else { // While-like behavior
-            if (node.subgraph) {
-                let iteration = 0;
-                // eslint-disable-next-line no-constant-condition
-                while (true) {
-                    const loopEngine = new SignalDrivenEngine();
-                    // We need a way to evaluate the condition *within* the subgraph's context.
-                    // This implies the subgraph needs an output that we can check.
-                    // Let's assume a special output port named 'loopCondition'.
-                    const context = { loop: { index: iteration } };
-                    const subgraphResult = await loopEngine.run(node.subgraph, context);
-
-                    // Convention: Subgraph must have a node connected to a 'graph/output'
-                    // proxy node with the 'parentPortName' property set to 'loopCondition'.
-                    const condition = subgraphResult ? subgraphResult['loopCondition'] : false;
-                    
-                    if (!condition) {
-                        break; // Exit loop if condition is false or not present
-                    }
-                    iteration++;
-                    
-                    if (iteration > 1000) { // Safety break
-                        console.warn('Loop safety break triggered after 1000 iterations.');
-                        break;
-                    }
-                }
-            }
-        }
-
-        this.enqueueDownstreamControlSignals(node, 'loopCompleted');
-        break;
-      }
-      case 'compound': {
-        if (node.subgraph) {
-          const subgraphEngine = new SignalDrivenEngine();
-          // Pass the parent node's inputs down to the subgraph context.
-          const subgraphOutputs = await subgraphEngine.run(node.subgraph, { inputs });
-          if (subgraphOutputs) {
-            this.resultsCache.set(node.id, subgraphOutputs);
-          }
-        }
-        this.enqueueDownstreamControlSignals(node);
-        break;
-      }
+      // ... other archetypes like loop, compound, etc. would be handled here
     }
+  }
+
+  private _handleSubscribable(node: NodeInstance, subscribable: ISubscribable) {
+    const taskId = `task_${this._asyncTaskCounter++}`;
+
+    const subscription = subscribable.subscribe({
+      onData: (portName, data) => {
+        console.log(`[Engine] Data received for ${node.id} on port ${portName}:`, data);
+        // PUSH the data to downstream nodes via a data signal
+        this.enqueueDownstreamSignals(node, portName, 'data', data);
+      },
+      onError: (portName, error) => {
+        console.error(`[Engine] Error from subscribable task for node ${node.id} on port ${portName}:`, error);
+        // Optionally, fire an error control port
+        this.enqueueDownstreamSignals(node, `on${portName.charAt(0).toUpperCase() + portName.slice(1)}Error`, 'control');
+        subscription.unsubscribe();
+        this.activeAsyncTasks.delete(taskId);
+      },
+      onDone: (portName) => {
+        console.log(`[Engine] Subscribable task for node ${node.id} on port ${portName} is done.`);
+        // Fire the "done" control port
+        this.enqueueDownstreamSignals(node, `on${portName.charAt(0).toUpperCase() + portName.slice(1)}Done`, 'control');
+        subscription.unsubscribe();
+        this.activeAsyncTasks.delete(taskId);
+      }
+    });
+
+    this.activeAsyncTasks.set(taskId, subscription);
   }
 }

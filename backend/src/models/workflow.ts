@@ -17,6 +17,7 @@ export type NodeDefinition = {
    * 这是所有节点都必须声明的核心属性。
    */
   archetype: 'action' |   // 普通执行节点
+             'stream-action' | // 流式执行节点
              'pure' |     // 纯数据转换
              'branch' |   // 控制流分支 (If, Switch)
              'merge' |    // 控制流合并 (OR logic)
@@ -251,3 +252,20 @@ export type Folder = {
   children: Folder[];
   workflows: Workflow[];
 };
+export interface ISubscription {
+  unsubscribe: () => void;
+}
+
+export interface ISubscriber {
+  onData: (portName: string, data: any) => void;
+  onError: (portName: string, error: Error) => void;
+  onDone: (portName: string) => void;
+}
+
+export interface ISubscribable {
+  subscribe(subscriber: ISubscriber): ISubscription;
+}
+
+export function isSubscribable(value: any): value is ISubscribable {
+    return value && typeof value.subscribe === 'function';
+}

@@ -1,4 +1,4 @@
-import { NodeDefinition } from '@src/models/workflow';
+import { ISubscriber, NodeDefinition } from '@src/models/workflow';
 
 // 这是一个简化的节点定义注册表。
 // 在一个真实的、可扩展的系统中，这些定义可能来自数据库、插件或配置文件。
@@ -379,6 +379,109 @@ export const NODE_DEFINITIONS = new Map<string, NodeDefinition>([
             const status = 'Order Rejected';
             console.log(status);
             return { status };
+        },
+    }],
+
+    // =========================================================================
+    // Stream/Async Test Nodes
+    // =========================================================================
+    ['string/suffixer', {
+        type: 'string/suffixer',
+        label: '加后缀',
+        description: '给输入的字符串添加一个后缀',
+        archetype: 'pure',
+        ports: [
+            { name: 'in', label: 'In', type: 'data', direction: 'in', dataType: 'string' },
+            { name: 'suffix', label: 'Suffix', type: 'data', direction: 'in', dataType: 'string' },
+            { name: 'out', label: 'Out', type: 'data', direction: 'out', dataType: 'string' },
+        ],
+        properties: [
+            { name: 'suffix', label: 'Suffix', type: 'string', defaultValue: '' }
+        ],
+        run: async ({ input, params }) => {
+            const str = input.in ?? '';
+            const suffix = input.suffix ?? params.suffix;
+            return { out: `${str}${suffix}` };
+        },
+    }],
+    ['array/aggregator', {
+        type: 'array/aggregator',
+        label: '聚合器',
+        description: '接收一个数组，添加一个后缀到每个元素，然后输出',
+        archetype: 'action',
+        ports: [
+            { name: 'in', label: 'In', type: 'control', direction: 'in' },
+            { name: 'array_in', label: 'Array In', type: 'data', direction: 'in', dataType: 'array' },
+            { name: 'array_out', label: 'Array Out', type: 'data', direction: 'out', dataType: 'array' },
+            { name: 'out', label: 'Out', type: 'control', direction: 'out' },
+        ],
+        properties: [
+            { name: 'suffix', label: 'Suffix', type: 'string', defaultValue: '_aggregated' }
+        ],
+        run: async ({ input, params }) => {
+            const inputArray = input.array_in || [];
+            const processedArray = inputArray.map((item: any) => `${item.value}${params.suffix}`);
+            return { array_out: processedArray };
+        },
+    }],
+    ['test/logger', {
+        type: 'test/logger',
+        label: '日志记录器',
+        description: '记录输入的值，用于测试',
+        archetype: 'action',
+        ports: [
+            { name: 'in', label: 'In', type: 'control', direction: 'in' },
+            { name: 'data', label: 'Data', type: 'data', direction: 'in', dataType: 'any' },
+        ],
+        run: async ({ input }) => {
+            console.log('Logger Node Executed:', input.data);
+            return {};
+        },
+    }],
+    ['test/stream', {
+        type: 'test/stream',
+        label: '测试流节点',
+        description: '模拟一个产生数据流的节点',
+        archetype: 'stream-action',
+        ports: [
+            { name: 'in', label: 'In', type: 'control', direction: 'in' },
+            { name: 'onChunkDone', label: 'On Done', type: 'control', direction: 'out' },
+            { name: 'chunk', label: 'Chunk', type: 'data', direction: 'out', dataType: 'any' },
+            { name: 'full_stream', label: 'Full Stream', type: 'data', direction: 'out', dataType: 'array' },
+        ],
+        properties: [
+            { name: 'interval', label: '间隔 (ms)', type: 'number', defaultValue: 500 },
+            { name: 'chunks', label: '数据块数量', type: 'number', defaultValue: 3 },
+        ],
+        run: async ({ params }) => {
+            const { interval, chunks } = params;
+            const accumulated: any[] = [];
+            
+            return {
+                subscribe(subscriber: ISubscriber) {
+                    let count = 0;
+                    const timer = setInterval(() => {
+                        if (count < chunks) {
+                            const dataPacket = { value: count, timestamp: Date.now() };
+                            accumulated.push(dataPacket);
+                            subscriber.onData('chunk', dataPacket);
+                            count++;
+                        } else {
+                            // When done, PUSH the full accumulated array out of the 'full_stream' port
+                            subscriber.onData('full_stream', accumulated);
+                            // Then, send the control signal that the stream is complete
+                            subscriber.onDone('chunk');
+                            clearInterval(timer);
+                        }
+                    }, interval);
+
+                    return {
+                        unsubscribe: () => {
+                            clearInterval(timer);
+                        }
+                    };
+                }
+            };
         },
     }],
 ]);
