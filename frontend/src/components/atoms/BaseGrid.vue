@@ -21,7 +21,9 @@ interface Props {
   justify?: Justify;
 }
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+  gap: 'base',
+});
 const attrs = useAttrs();
 
 const getSpacingValue = (spacing?: Spacing) => {

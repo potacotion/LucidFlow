@@ -30,7 +30,10 @@ interface Props {
   shadow?: string; // e.g., 'var(--c-shadow-base)'
 }
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+  p: 'base',
+  radius: 'base',
+});
 const attrs = useAttrs();
 
 const getSpacingValue = (spacing?: Spacing) => {

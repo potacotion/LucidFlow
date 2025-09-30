@@ -1,19 +1,19 @@
 <template>
   <transition name="fade">
     <div v-if="visible" class="base-prompt__overlay" @click.self="handleCancel">
-      <div class="base-prompt__dialog">
-        <div class="base-prompt__header">
-          <h3 class="base-prompt__title">{{ title }}</h3>
-        </div>
-        <div class="base-prompt__body">
-          <p v-if="message" class="base-prompt__message">{{ message }}</p>
-          <BaseInput v-model="inputValue" @keydown.enter="handleConfirm" />
-        </div>
-        <div class="base-prompt__footer">
-          <BaseButton variant="secondary" @click="handleCancel">取消</BaseButton>
-          <BaseButton @click="handleConfirm">确认</BaseButton>
-        </div>
-      </div>
+      <BaseCard class="base-prompt__dialog" shadow="dark" radius="lg" p="lg">
+        <BaseStack gap="md">
+          <BaseHeading :level="3">{{ title }}</BaseHeading>
+          <BaseStack gap="sm">
+            <BaseText v-if="message" color="secondary">{{ message }}</BaseText>
+            <BaseInput v-model="inputValue" @keydown.enter="handleConfirm" />
+          </BaseStack>
+          <BaseStack direction="row" justify="flex-end" gap="sm">
+            <BaseButton variant="secondary" @click="handleCancel">取消</BaseButton>
+            <BaseButton @click="handleConfirm">确认</BaseButton>
+          </BaseStack>
+        </BaseStack>
+      </BaseCard>
     </div>
   </transition>
 </template>
@@ -22,6 +22,10 @@
 import { ref, watch } from 'vue';
 import BaseInput from '@/components/atoms/BaseInput.vue';
 import BaseButton from '@/components/atoms/BaseButton.vue';
+import BaseCard from '@/components/atoms/BaseCard.vue';
+import BaseStack from '@/components/atoms/BaseStack.vue';
+import BaseHeading from '@/components/atoms/BaseHeading.vue';
+import BaseText from '@/components/atoms/BaseText.vue';
 
 interface Props {
   visible: boolean;
@@ -65,37 +69,8 @@ const handleCancel = () => {
 }
 
 .base-prompt__dialog {
-  background-color: var(--c-background);
-  border-radius: var(--radius-md);
-  padding: var(--sp-6);
   width: 90%;
   max-width: 400px;
-  box-shadow: var(--shadow-lg);
-}
-
-.base-prompt__header {
-  margin-bottom: var(--sp-4);
-}
-
-.base-prompt__title {
-  font-size: var(--font-size-lg);
-  font-weight: 600;
-  color: var(--c-text-primary);
-}
-
-.base-prompt__body {
-  margin-bottom: var(--sp-6);
-}
-
-.base-prompt__message {
-  margin-bottom: var(--sp-3);
-  color: var(--c-text-secondary);
-}
-
-.base-prompt__footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--sp-3);
 }
 
 .fade-enter-active,

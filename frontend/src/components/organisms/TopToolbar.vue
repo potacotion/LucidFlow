@@ -7,10 +7,12 @@ import BaseHeading from '@/components/atoms/BaseHeading.vue'
 import BorderedImmersiveButton from '@/components/molecules/BorderedImmersiveButton.vue'
 import SaveButton from '@/components/molecules/SaveButton.vue'
 import { useWorkflowStore } from '@/stores/workflow.store';
+import { useFileStore } from '@/stores/file.store';
 import { WorkflowsService } from '@/api/services/WorkflowsService';
 import { BaseToast } from '@/services/toast';
 
 const workflowStore = useWorkflowStore();
+const fileStore = useFileStore();
 
 async function handleRunWorkflow() {
   if (!workflowStore.currentWorkflowId) {
@@ -44,7 +46,7 @@ async function handleRunWorkflow() {
             <BaseIcon icon="fa-solid fa-play" />
             Run
           </BorderedImmersiveButton>
-          <SaveButton />
+          <SaveButton @save="fileStore.saveFile" @save-as="fileStore.openSaveAsModal" />
         </BaseStack>
       </div>
 

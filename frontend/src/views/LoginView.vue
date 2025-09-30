@@ -2,7 +2,7 @@
   <div class="login-container">
     <BaseCard>
       <BaseStack gap="base">
-        <BaseHeading as="h2" size="xl">Login</BaseHeading>
+        <BaseHeading :level=2 size="xl">Login</BaseHeading>
         <form @submit.prevent="handleLogin">
           <BaseStack gap="base">
             <BaseInput

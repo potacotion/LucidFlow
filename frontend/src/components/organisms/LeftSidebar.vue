@@ -28,7 +28,7 @@ const toggleTheme = () => {
 
 <template>
   <BaseBox
-    :padding="['sp-2']"
+    p="none"
     shadow="--c-shadow-base"
     radius="none"
     class="left-sidebar"
