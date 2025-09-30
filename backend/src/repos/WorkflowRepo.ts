@@ -53,20 +53,16 @@ async function getTree(): Promise<Folder[]> {
     }
   });
 
-  // 4. If there are workflows without a folder, create a virtual root to hold them
-  if (rootWorkflows.length > 0) {
-    // We can create a "virtual" folder or just return them at the root level.
-    // Let's create a virtual folder for consistency.
-    const virtualRootFolder: Folder = {
-      id: 'root-workflows',
-      name: 'Workflows', // This name will appear in the UI
-      children: [],
-      workflows: rootWorkflows,
-    };
-    return [...rootFolders, virtualRootFolder];
-  }
+  // 4. Create a single, unified virtual root to hold all top-level items.
+  // This ensures the frontend always receives a consistent tree structure with a single root.
+  const unifiedRoot: Folder = {
+    id: '__root__', // A fixed, predictable ID for the root
+    name: 'All Files',
+    children: rootFolders, // All top-level folders become children of the root
+    workflows: rootWorkflows, // All top-level workflows also become children of the root
+  };
 
-  return rootFolders;
+  return [unifiedRoot];
 }
 
 async function getOne(id: string): Promise<Workflow | null> {

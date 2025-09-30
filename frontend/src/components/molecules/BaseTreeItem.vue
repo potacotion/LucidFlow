@@ -6,6 +6,7 @@ import BaseIcon from '@/components/atoms/BaseIcon.vue';
 // Define component props and emits
 const props = defineProps<{
   node: TreeNode;
+  selectedNodeId?: string;
 }>();
 
 const emit = defineEmits<{
@@ -18,10 +19,17 @@ const isExpanded = ref(false);
 
 // Computed properties
 const isFolder = computed(() => {
+  // Prioritize the explicit `isFolder` flag from the node data.
+  if (typeof props.node.isFolder === 'boolean') {
+    return props.node.isFolder;
+  }
+  // Fallback for older data structures that might not have the flag.
   return props.node.children && props.node.children.length > 0;
 });
 
 const isDraggable = computed(() => !isFolder.value);
+
+const isSelected = computed(() => props.node.id === props.selectedNodeId);
 
 // Methods
 const handleClick = () => {
@@ -42,7 +50,7 @@ const onDragStart = (event: DragEvent) => {
   <div class="base-tree-item">
     <div
       class="item-content"
-      :class="{ folder: isFolder, draggable: isDraggable }"
+      :class="{ folder: isFolder, draggable: isDraggable, 'is-selected': isSelected }"
       :draggable="isDraggable"
       @click.stop="handleClick"
       @dragstart="onDragStart"
@@ -61,6 +69,7 @@ const onDragStart = (event: DragEvent) => {
         v-for="child in node.children"
         :key="child.id"
         :node="child"
+        :selected-node-id="selectedNodeId"
         @node-click="$emit('node-click', $event)"
         @node-drag-start="(...args) => $emit('node-drag-start', ...args)"
       />
@@ -82,8 +91,9 @@ const onDragStart = (event: DragEvent) => {
   transition: background-color 0.2s ease;
 }
 
-.item-content:hover {
-  background-color: var(--color-bg-hover);
+.item-content:hover,
+.item-content.is-selected {
+  background-color: var(--c-border-dark);
 }
 
 .item-content.draggable {

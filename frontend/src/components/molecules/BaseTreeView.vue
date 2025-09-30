@@ -5,6 +5,7 @@ import BaseTreeItem from './BaseTreeItem.vue';
 // Define component props and emits
 defineProps<{
   nodes: TreeNode[];
+  selectedNodeId?: string;
 }>();
 
 const emit = defineEmits<{
@@ -28,6 +29,7 @@ const handleNodeDragStart = (event: DragEvent, node: TreeNode) => {
       v-for="node in nodes"
       :key="node.id"
       :node="node"
+      :selected-node-id="selectedNodeId"
       @node-click="handleNodeClick"
       @node-drag-start="handleNodeDragStart"
     />

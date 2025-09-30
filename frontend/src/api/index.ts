@@ -17,5 +17,6 @@ export type { UserRegisterDto } from './models/UserRegisterDto';
 export type { Workflow } from './models/Workflow';
 
 export { AuthService } from './services/AuthService';
+export { FoldersService } from './services/FoldersService';
 export { NodeDefinitionsService } from './services/NodeDefinitionsService';
 export { WorkflowsService } from './services/WorkflowsService';
