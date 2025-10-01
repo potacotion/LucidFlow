@@ -31,7 +31,8 @@ export default {
   },
   Config: {
     Base: '/config',
-    User: '/config/user',
-    Global: '/config/global',
+    Root: '/',
+    User: '/user',
+    Global: '/global',
   }
 } as const;

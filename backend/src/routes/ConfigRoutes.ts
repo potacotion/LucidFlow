@@ -34,7 +34,7 @@ const ConfigRoutes = Router();
  *         description: Unauthorized
  */
 ConfigRoutes.get(
-    Paths.Config.Base,
+    Paths.Config.Root,
     authenticate,
     async (req: Request, res: Response) => {
         const userId = req.user?.id;
