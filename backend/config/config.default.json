@@ -1,0 +1,11 @@
+{
+  "appName": "LucidFlow",
+  "featureFlags": {
+    "enableNewDashboard": true,
+    "enableAiAssistant": false
+  },
+  "theme": {
+    "defaultMode": "light",
+    "allowUserOverride": true
+  }
+}

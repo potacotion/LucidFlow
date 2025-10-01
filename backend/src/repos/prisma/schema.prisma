@@ -19,15 +19,19 @@ model User {
   name     String
   email    String       @unique
   pwdHash  String
-  role     UserRoles    @default(Standard)
   settings UserSettings?
+  roles    Role[]
 
   @@map("users")
 }
 
-enum UserRoles {
-  Standard
-  Admin
+// Role model
+model Role {
+  id    Int    @id @default(autoincrement())
+  name  String @unique
+  users User[]
+
+  @@map("roles")
 }
 
 // 用户个人设置

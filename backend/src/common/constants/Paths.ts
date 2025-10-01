@@ -4,6 +4,9 @@ export default {
   Auth: {
     Base: '/auth',
   },
+  Roles: {
+   Base: '/roles',
+  },
   Workflows: {
     Base: '/workflows',
     Get: '/:id',
@@ -23,4 +26,12 @@ export default {
     Update: '/:id',
     Delete: '/:id',
   },
+  Users: {
+    Base: '/users',
+  },
+  Config: {
+    Base: '/config',
+    User: '/config/user',
+    Global: '/config/global',
+  }
 } as const;

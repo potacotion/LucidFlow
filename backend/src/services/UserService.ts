@@ -57,19 +57,46 @@ async function login(credentials: UserLoginDto): Promise<{ token: string }> {
     throw new RouteError(HttpStatusCodes.UNAUTHORIZED, 'Invalid email or password.');
   }
 
-  const token = jwt.sign(
-    { 
-      id: user.id, 
-      role: user.role 
-    },
-    EnvVars.Jwt.Secret,
-    { expiresIn: EnvVars.Jwt.Exp },
-  );
+  const payload = { id: user.id };
+  const secret = EnvVars.Jwt.Secret;
+  const options = { expiresIn: EnvVars.Jwt.Exp };
+
+  const token = jwt.sign(payload, secret, options);
 
   return { token };
+}
+
+/**
+ * Assign a role to a user.
+ */
+async function assignRoleToUser(userId: number, roleId: number): Promise<User> {
+  return prisma.user.update({
+    where: { id: userId },
+    data: {
+      roles: {
+        connect: { id: roleId },
+      },
+    },
+  });
+}
+
+/**
+ * Remove a role from a user.
+ */
+async function removeRoleFromUser(userId: number, roleId: number): Promise<User> {
+  return prisma.user.update({
+    where: { id: userId },
+    data: {
+      roles: {
+        disconnect: { id: roleId },
+      },
+    },
+  });
 }
 
 export default {
   register,
   login,
+  assignRoleToUser,
+  removeRoleFromUser,
 } as const;
