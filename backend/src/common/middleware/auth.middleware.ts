@@ -5,6 +5,7 @@ import { RouteError } from '@src/common/util/route-errors';
 import HttpStatusCodes from '@src/common/constants/HttpStatusCodes';
 import { User, Role } from '@prisma/client';
 import { findUserByIdWithRoles } from '@src/repos/UserRepo';
+import ConfigService from '@src/services/ConfigService';
 
 // Extend Express Request type to include the user payload from JWT
 declare global {
@@ -23,6 +24,22 @@ interface JwtPayload {
  * Middleware to authenticate requests using JWT.
  */
 export async function authenticate(req: Request, res: Response, next: NextFunction) {
+  const globalConfig = await ConfigService.getGlobalConfig() as { multiUserMode?: boolean };
+
+  if (globalConfig.multiUserMode === false) {
+    // Single User Mode: bypass JWT and assume admin user (ID 1)
+    const adminUser = await findUserByIdWithRoles(1);
+    if (!adminUser) {
+      throw new RouteError(
+        HttpStatusCodes.INTERNAL_SERVER_ERROR,
+        'Single User Mode is active, but default admin user (ID 1) was not found.'
+      );
+    }
+    req.user = adminUser;
+    return next();
+  }
+  
+  // Multi User Mode: proceed with standard JWT authentication
   const authHeader = req.headers.authorization;
   const token = authHeader && authHeader.split(' ')[1];
 
