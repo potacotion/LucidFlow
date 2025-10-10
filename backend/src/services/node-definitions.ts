@@ -56,7 +56,8 @@ export class NodeRegistry {
       const fullPath = path.join(directory, entry.name);
       if (entry.isDirectory()) {
         await this.loadNodesFromDirectory(fullPath);
-      } else if (entry.name.endsWith('.node.ts')) {
+      } else if (entry.name === 'index.ts') { // 查找 index.ts 而不是 *.node.ts
+        // 假设 index.ts 存在于 .../node-type/version/ 目录中
         await this.loadNodeDefinition(fullPath);
       }
     }
@@ -68,20 +69,21 @@ export class NodeRegistry {
    */
   private async loadNodeDefinition(filePath: string): Promise<void> {
     try {
-      // backend/src/services/nodes/math/add/1.0.0.node.ts
+      // backend/src/services/nodes/math/add/1.0.0/index.ts
       //                         |---- relative part ----|
       const nodesBaseDir = path.join(__dirname, 'nodes');
       const relativePath = path.relative(nodesBaseDir, filePath);
-      
-      // 'math/add/1.0.0.node.ts'
+
+      // 'math/add/1.0.0/index.ts'
       const parts = relativePath.split(path.sep);
 
-      if (parts.length < 3) {
+      if (parts.length < 4) { // 需要至少4部分: category, name, version, index.ts
         logger.warn(`Skipping invalid node definition path: ${relativePath}`);
         return;
       }
 
-      const versionStr = parts.pop()?.replace('.node.ts', ''); // '1.0.0'
+      parts.pop(); // 移除 'index.ts'
+      const versionStr = parts.pop(); // '1.0.0'
       const nodeName = parts.pop(); // 'add'
       const category = parts.join('/'); // 'math'
       const nodeType = `${category}/${nodeName}`; // 'math/add'

@@ -60,6 +60,14 @@ export type NodeDefinition = {
    */
   version: string;
 };
+/**
+ * [新增] 为所有节点 run 方法提供的参数类型定义。
+ */
+export interface RunParams {
+  input: Record<string, any>;
+  params: Record<string, any>;
+  logger: Logger;
+}
 
 /**
  * 日志记录器接口
