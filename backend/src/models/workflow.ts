@@ -51,6 +51,14 @@ export type NodeDefinition = {
     params: { [propertyName: string]: any };
     logger: Logger;
   }) => Promise<{ [portName: string]: any }>;
+
+  /**
+   * [新增] 节点的语义化版本 (e.g., "1.0.0", "1.2.5")。
+   * - MAJOR 版本：当发生不兼容的 API 变更时（如增删端口、修改核心逻辑）。
+   * - MINOR 版本：当以向后兼容的方式添加新功能时。
+   * - PATCH 版本：当进行向后兼容的错误修复时。
+   */
+  version: string;
 };
 
 /**
@@ -207,6 +215,12 @@ export interface NodeInstance {
    * 节点的类型，关联到唯一的 NodeDefinition, e.g., "control/forEach"
    */
   type: string;
+
+  /**
+   * [新增] 此节点实例创建时所使用的 NodeDefinition 的语义化版本。
+   * 这确保了即使节点定义更新，旧的工作流也能以创建时的行为来执行。
+   */
+  version: string;
 
   /**
    * 用户可自定义的节点标签

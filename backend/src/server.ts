@@ -12,11 +12,22 @@ import ENV from '@src/common/constants/ENV';
 import HttpStatusCodes from '@src/common/constants/HttpStatusCodes';
 import { RouteError } from '@src/common/util/route-errors';
 import { NodeEnvs } from '@src/common/constants';
+import NodeRegistry from '@src/services/node-definitions';
 
 
 /******************************************************************************
                                  Setup
 ******************************************************************************/
+
+(async () => {
+  try {
+    await NodeRegistry.initialize();
+    logger.info('Node registry initialized successfully.');
+  } catch (error) {
+    logger.err('Failed to initialize node registry:', error);
+    process.exit(1); // 初始化失败则退出应用
+  }
+})();
 
 const app = express();
 

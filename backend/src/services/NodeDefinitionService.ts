@@ -1,8 +1,8 @@
-import { NODE_DEFINITIONS } from './node-definitions';
+import NodeRegistry from './node-definitions';
 import { NodeDefinition } from '@src/models/workflow';
 
 function getAll(): NodeDefinition[] {
-  return Array.from(NODE_DEFINITIONS.values());
+  return NodeRegistry.getAllLatestDefinitions();
 }
 
 export default {

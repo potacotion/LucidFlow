@@ -1,11 +1,11 @@
   import { NodeInstance, Edge, NodeDefinition, PortDefinition, isSubscribable, ISubscribable, EngineHooks, NodeStatus } from '@src/models/workflow';
   import * as NodeExecutor from './NodeExecutor';
-  import { NODE_DEFINITIONS } from './node-definitions';
-
-  function getNodeDefinition(nodeType: string): NodeDefinition {
-    const definition = NODE_DEFINITIONS.get(nodeType);
+  import NodeRegistry from './node-definitions';
+  
+  function getNodeDefinition(node: NodeInstance): NodeDefinition {
+    const definition = NodeRegistry.getDefinition(node.type, node.version);
     if (!definition) {
-      throw new Error(`Node definition not found for type: ${nodeType}`);
+      throw new Error(`Node definition not found for type: ${node.type}, version: ${node.version}`);
     }
     return definition;
   }
@@ -44,7 +44,7 @@
       const targetNode = this.findNodeById(targetNodeId);
       if (!targetNode) return undefined;
 
-      const nodeDef = getNodeDefinition(targetNode.type);
+      const nodeDef = getNodeDefinition(targetNode);
       const portDef = (targetNode.ports || nodeDef.ports).find(p => p.name === targetPortName);
 
       if (!portDef) return undefined; // Port not found on instance or definition
@@ -88,7 +88,7 @@
       }
 
       const startNodes = graph.nodes.filter(node => {
-          const def = getNodeDefinition(node.type);
+          const def = getNodeDefinition(node);
           if (def.archetype !== 'action' && def.archetype !== 'stream-action') {
               return false;
           }
@@ -149,7 +149,7 @@
 
     private async resolveAllInputs(node: NodeInstance, signal: Signal): Promise<{ [key: string]: any }> {
       const inputs: { [key: string]: any } = {};
-      const def = getNodeDefinition(node.type);
+      const def = getNodeDefinition(node);
       
       // [FIX] Use ports from the instance if they exist, otherwise fallback to the definition.
       const portsToProcess = node.ports || def.ports;
@@ -178,7 +178,7 @@
       
       const edge = this.graphWalker.findUpstreamEdge(targetNode.id, targetPortName);
       if (!edge) {
-        const portsToSearch = targetNode.ports || getNodeDefinition(targetNode.type).ports;
+        const portsToSearch = targetNode.ports || getNodeDefinition(targetNode).ports;
         const portDef = portsToSearch.find((p: PortDefinition) => p.name === targetPortName);
         const defaultValue = portDef?.defaultValue;
         console.log(`[DEBUG] No upstream edge found for ${targetNode.id}.${targetPortName}. Port definition:`, portDef, `Using default value: ${defaultValue}`);
@@ -197,7 +197,7 @@
       const sourceNode = this.graphWalker.findNodeById(sourceNodeId);
       if (!sourceNode) throw new Error(`Source node ${sourceNodeId} not found.`);
     
-      const sourceNodeDef = getNodeDefinition(sourceNode.type);
+      const sourceNodeDef = getNodeDefinition(sourceNode);
 
       if (sourceNodeDef.archetype === 'stream-action') {
         // It's a stream-action. We don't pull from it directly.
@@ -224,7 +224,7 @@
     }
 
     private async execute(node: NodeInstance, signal: Signal) {
-      const definition = getNodeDefinition(node.type);
+      const definition = getNodeDefinition(node);
       this.hooks?.onNodeStart(node.id, definition.archetype);
 
       try {
