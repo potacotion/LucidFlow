@@ -1,9 +1,14 @@
 import logger from 'jet-logger';
+import { createServer } from 'http';
+import { WebSocketServer } from 'ws';
+import url from 'url';
 
 import ENV from '@src/common/constants/ENV';
 import server from './server';
 import { setupSwagger } from '../config/swagger';
 import ConfigService from '@src/services/ConfigService';
+import { connectionManager } from './services/WebSocketService';
+import WorkflowExecutionManager from './services/WorkflowExecutionManager';
 
 /******************************************************************************
  *                                   Run
@@ -20,9 +25,46 @@ const startServer = async () => {
     // Setup Swagger UI
     setupSwagger(server);
 
+    // Create HTTP server
+    const httpServer = createServer(server);
+
+    // Create WebSocket server
+    const wss = new WebSocketServer({ noServer: true });
+
+    httpServer.on('upgrade', (request, socket, head) => {
+      const pathname = request.url ? url.parse(request.url).pathname : undefined;
+      const wsPathRegex = /^\/ws\/workflow\/([a-zA-Z0-9_-]+)$/;
+      
+      if (pathname && wsPathRegex.test(pathname)) {
+        wss.handleUpgrade(request, socket, head, (ws) => {
+          wss.emit('connection', ws, request);
+        });
+      } else {
+        socket.destroy();
+      }
+    });
+
+    wss.on('connection', (ws, request) => {
+      const pathname = request.url ? url.parse(request.url).pathname : '';
+      const match = pathname?.match(/^\/ws\/workflow\/([a-zA-Z0-9_-]+)$/);
+      if (match) {
+        const runId = match[1];
+        connectionManager.add(runId, ws);
+
+        // This is the crucial part: Start the execution only after the WS is connected.
+        WorkflowExecutionManager.startExecution(runId);
+
+        ws.on('close', () => {
+          connectionManager.remove(runId, ws);
+        });
+      } else {
+        ws.close();
+      }
+    });
+
     // Start the server
-    server.listen(ENV.Port, host, () => {
-      logger.info(`Express server started on http://${host}:${ENV.Port}`);
+    httpServer.listen(ENV.Port, host, () => {
+      logger.info(`Express server with WebSocket support started on http://${host}:${ENV.Port}`);
     });
 
   } catch (err) {

@@ -275,3 +275,10 @@ export interface ISubscribable {
 export function isSubscribable(value: any): value is ISubscribable {
     return value && typeof value.subscribe === 'function';
 }
+
+export type NodeStatus = 'success' | 'error' | 'running';
+
+export interface EngineHooks {
+  onNodeStart: (nodeId: string, archetype: string) => void;
+  onNodeEnd: (nodeId: string, status: NodeStatus) => void;
+}

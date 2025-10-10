@@ -8,24 +8,12 @@ import BorderedImmersiveButton from '@/components/molecules/BorderedImmersiveBut
 import SaveButton from '@/components/molecules/SaveButton.vue'
 import { useWorkflowStore } from '@/stores/workflow.store';
 import { useFileStore } from '@/stores/file.store';
-import { WorkflowsService } from '@/api/services/WorkflowsService';
-import { BaseToast } from '@/services/toast';
 
 const workflowStore = useWorkflowStore();
 const fileStore = useFileStore();
 
-async function handleRunWorkflow() {
-  if (!workflowStore.currentWorkflowId) {
-    BaseToast.warning('No active workflow to run.');
-    return;
-  }
-  try {
-    const result = await WorkflowsService.postApiWorkflowsRun(workflowStore.currentWorkflowId);
-    BaseToast.success(`Workflow finished with result: ${JSON.stringify(result)}`);
-  } catch (error) {
-    BaseToast.error('Failed to execute workflow.');
-    console.error(error);
-  }
+function handleRunWorkflow() {
+  workflowStore.startExecution();
 }
 </script>
 

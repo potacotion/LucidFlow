@@ -1,5 +1,5 @@
 <template>
-  <div class="base-node">
+  <div class="base-node" :class="{ 'node-running': isRunning }">
     <div class="title">{{ data.label || 'Node' }}</div>
 
     <div class="ports-container">
@@ -56,12 +56,16 @@ import { computed } from 'vue'
 import { Handle, Position } from '@vue-flow/core'
 import { stringToColor } from '@/utils/color'
 import type { PortDefinition } from '@/types/workflow'
+import { useWorkflowStore } from '@/stores/workflow.store';
 
 interface NodeData {
   label?: string
   input?: PortDefinition[]
   output?: PortDefinition[]
 }
+
+const workflowStore = useWorkflowStore()
+const isRunning = computed(() => workflowStore.isNodeRunning(props.id))
 
 // Vue Flow injects the node's id as a prop
 const props = defineProps<{
@@ -88,9 +92,28 @@ const hasDataPorts = computed(() => dataInputs.value.length > 0 || dataOutputs.v
   min-width: 160px;
   border-radius: 12px;
   overflow: hidden;
-  /* border: 1px solid #414141; */
   box-shadow: 0 0 10px var(--c-shadow-dark);
   background-color: var(--c-background);
+  --c-primary-rgb: 52, 152, 219;
+  border: 2px solid transparent; /* Add transparent border for smooth transition */
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(var(--c-primary-rgb), 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(var(--c-primary-rgb), 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(var(--c-primary-rgb), 0);
+  }
+}
+
+.node-running {
+  border-color: var(--c-primary);
+  animation: pulse 1.5s infinite;
 }
 
 /* ========= 标题区 ========= */
@@ -160,3 +183,4 @@ const hasDataPorts = computed(() => dataInputs.value.length > 0 || dataOutputs.v
   border: 1px solid var(--c-background) !important;
 }
 </style>
+

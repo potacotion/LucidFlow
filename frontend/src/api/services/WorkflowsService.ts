@@ -93,12 +93,14 @@ export class WorkflowsService {
     /**
      * Run a workflow
      * @param id
-     * @returns any Workflow execution result.
+     * @returns any The ID for the workflow execution run.
      * @throws ApiError
      */
     public static postApiWorkflowsRun(
         id: string,
-    ): CancelablePromise<any> {
+    ): CancelablePromise<{
+        runId?: string;
+    }> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/workflows/{id}/run',

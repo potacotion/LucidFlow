@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import Paths from '@src/common/constants/Paths';
 import WorkflowService from '@src/services/WorkflowService';
+import WorkflowExecutionManager from '@src/services/WorkflowExecutionManager';
 import { Workflow, Folder } from '@src/models/workflow';
 import {  } from 'jet-logger';
 
@@ -133,11 +134,23 @@ WorkflowRoutes.delete(Paths.Workflows.Delete, async (req, res) => {
  *           type: string
  *     responses:
  *       200:
- *         description: Workflow execution result.
+ *         description: The ID for the workflow execution run.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 runId:
+ *                   type: string
  */
 WorkflowRoutes.post(Paths.Workflows.Run, async (req, res) => {
-  const result = await WorkflowService.runOne(req.params.id);
-  return res.json(result);
+  const workflow = await WorkflowService.getOne(req.params.id);
+  if (!workflow) {
+    return res.status(404).json({ error: 'Workflow not found' });
+  }
+  // Register the execution and get the runId, but don't start it yet.
+  const { runId } = WorkflowExecutionManager.registerExecution(workflow.graph);
+  return res.json({ runId });
 });
 
 export default WorkflowRoutes;

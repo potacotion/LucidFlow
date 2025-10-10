@@ -1,9 +1,11 @@
 import { defineStore } from 'pinia';
-import { ref, computed } from 'vue';
+import { ref, computed, reactive } from 'vue';
 import type { NodeInstance, Edge, NodeDefinition, PortDefinition } from '@/types/workflow';
 import { useUIStore } from './ui.store';
 import type { Connection } from '@vue-flow/core';
 import { BaseToast } from '@/services/toast';
+import { WorkflowsService } from '@/api';
+
 
 // Helper function to generate a unique ID
 const generateId = (prefix: string) => `${prefix}_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
@@ -17,13 +19,19 @@ export const useWorkflowStore = defineStore('workflow', () => {
   const currentWorkflowName = ref<string | null>(null);
 
   // A repository of all available node blueprints.
-  // In a real app, this would likely be fetched from an API.
   const nodeDefinitions = ref<Record<string, NodeDefinition>>({});
+
+  // --- Real-time Execution State ---
+  const runningNodeIds = ref<string[]>([]);
+  const runningNodeTimestamps = reactive<Map<string, number>>(new Map());
+  const currentRunId = ref<string | null>(null);
 
 
   // --- GETTERS / COMPUTED ---
 
   const uiStore = useUIStore();
+
+  const isNodeRunning = computed(() => (nodeId: string) => runningNodeIds.value.includes(nodeId));
 
   /**
    * Gets the currently selected NodeInstance object based on the ID in the UI store.
@@ -89,6 +97,18 @@ export const useWorkflowStore = defineStore('workflow', () => {
       Object.assign(node.propertyValues, newValues);
     }
   }
+  /**
+   * Updates the position of a specific node instance.
+   * @param nodeId - The ID of the node to update.
+   * @param newPosition - The new position object { x, y }.
+   */
+  function updateNodePosition(nodeId: string, newPosition: { x: number; y: number }) {
+    const node = nodes.value.find(n => n.id === nodeId);
+    if (node) {
+      node.position = newPosition;
+    }
+  }
+
 
   /**
    * Updates the entire ports array for a given node instance.
@@ -315,6 +335,89 @@ export const useWorkflowStore = defineStore('workflow', () => {
   });
 
 
+  // --- ACTIONS ---
+
+  /**
+   * Starts the execution of the current workflow.
+   */
+  async function startExecution() {
+    if (!currentWorkflowId.value) {
+      BaseToast.error('Cannot run a workflow that has not been saved.');
+      return;
+    }
+    // Reset previous run state
+    handleExecutionEnd();
+
+    try {
+      const response = await WorkflowsService.postApiWorkflowsRun(currentWorkflowId.value);
+      if (response.runId) {
+        currentRunId.value = response.runId;
+      } else {
+        throw new Error('runId was not returned from the API.');
+      }
+    } catch (error) {
+      console.error('Failed to start workflow execution:', error);
+      BaseToast.error('Failed to start workflow execution.');
+    }
+  }
+
+  /**
+   * Handles the start of a node's execution from a WebSocket event.
+   */
+  function handleNodeStart(nodeId: string) {
+    console.log(`Node started: ${nodeId}`);
+    if (!runningNodeIds.value.includes(nodeId)) {
+      runningNodeIds.value.push(nodeId);
+    }
+    console.log('Current running nodes:', runningNodeIds.value);
+    runningNodeTimestamps.set(nodeId, Date.now());
+  }
+
+  /**
+   * Handles the end of a node's execution, ensuring a minimum highlight duration.
+   */
+  function handleNodeEnd(nodeId: string) {
+    console.log(`Node ended: ${nodeId}`);
+    const startTime = runningNodeTimestamps.get(nodeId);
+    const MIN_HIGHLIGHT_DURATION = 500;
+
+    const removeNode = () => {
+      runningNodeIds.value = runningNodeIds.value.filter(id => id !== nodeId);
+      console.log('Current running nodes:', runningNodeIds.value);
+      runningNodeTimestamps.delete(nodeId);
+    };
+
+    if (startTime) {
+      const elapsedTime = Date.now() - startTime;
+      const remainingTime = MIN_HIGHLIGHT_DURATION - elapsedTime;
+      if (remainingTime > 0) {
+        setTimeout(removeNode, remainingTime);
+      } else {
+        removeNode();
+      }
+    } else {
+      removeNode();
+    }
+  }
+
+  /**
+   * Cleans up the state after a workflow execution is finished.
+   */
+  function handleExecutionEnd() {
+    runningNodeIds.value = [];
+    runningNodeTimestamps.clear();
+    currentRunId.value = null;
+  }
+
+  /**
+   * Sets the node definitions for the entire application.
+   * This is typically called once at startup.
+   * @param definitions - A record object where keys are node types and values are NodeDefinition objects.
+   */
+  function setNodeDefinitions(definitions: Record<string, NodeDefinition>) {
+    nodeDefinitions.value = definitions;
+  }
+
   return {
     // State
     nodes,
@@ -322,13 +425,17 @@ export const useWorkflowStore = defineStore('workflow', () => {
     nodeDefinitions,
     currentWorkflowId,
     currentWorkflowName,
+    currentRunId,
+    runningNodeIds,
     // Computed
     selectedNode,
     selectedNodeDefinition,
     currentWorkflowData,
+    isNodeRunning,
     // Actions
     addNode,
     updateNodeProperties,
+    updateNodePosition,
     updateNodePorts,
     addEdge,
     removeEdges,
@@ -336,5 +443,10 @@ export const useWorkflowStore = defineStore('workflow', () => {
     validateAndAddEdge,
     loadWorkflow,
     unloadWorkflow,
+    startExecution,
+    handleNodeStart,
+    handleNodeEnd,
+    handleExecutionEnd,
+    setNodeDefinitions, // Expose the new action
   };
 });
