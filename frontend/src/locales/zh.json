@@ -1,0 +1,67 @@
+
+{
+  "common": {
+    "save": "保存",
+    "cancel": "取消",
+    "delete": "删除",
+    "edit": "编辑",
+    "create": "创建",
+    "close": "关闭",
+    "submit": "提交",
+    "username": "用户名",
+    "password": "密码",
+    "email": "邮箱"
+  },
+  "views": {
+    "initialization": {
+      "title": "初始设置",
+      "message": "欢迎！请完成初始配置以继续。"
+    },
+    "login": {
+      "title": "登录",
+      "loginButton": "登录"
+    },
+    "register": {
+      "title": "创建账户",
+      "registerButton": "注册"
+    },
+    "settings": {
+      "title": "设置",
+      "general": "通用",
+      "security": "安全",
+      "language": "语言"
+    }
+  },
+  "components": {
+    "appLayout": {},
+    "configPanel": {
+      "title": "配置面板"
+    },
+    "fileExplorer": {
+      "title": "文件浏览器",
+      "newFile": "新建文件",
+      "newFolder": "新建文件夹"
+    },
+    "fileSaveModal": {
+      "title": "保存工作流",
+      "fileName": "文件名",
+      "saveAs": "另存为"
+    },
+    "leftSidebar": {
+      "explorer": "浏览器",
+      "settings": "设置"
+    },
+    "nodePalette": {
+      "title": "节点面板",
+      "search": "搜索节点..."
+    },
+    "topToolbar": {
+      "run": "运行",
+      "stop": "停止",
+      "save": "保存"
+    },
+    "workflowCanvas": {
+      "emptyMessage": "从节点面板拖拽一个节点来开始。"
+    }
+  }
+}

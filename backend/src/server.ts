@@ -33,8 +33,10 @@ const app = express();
 
 
 // **** Middleware **** //
+import { languageMiddleware } from '@src/common/middleware/language.middleware';
 
 // Basic middleware
+app.use(languageMiddleware);
 app.use(express.json());
 app.use(express.urlencoded({extended: true}));
 app.use(cors());

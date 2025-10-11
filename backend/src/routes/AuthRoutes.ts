@@ -49,6 +49,7 @@ async function register(req: Request<unknown, unknown, UserRegisterDto>, res: Re
     if (error instanceof RouteError) {
       return res.status(error.status).json({ error: error.message });
     }
+    console.error('Unhandled error during registration:', error);
     return res.status(HttpStatusCodes.INTERNAL_SERVER_ERROR).json({ error: 'An unexpected error occurred.' });
   }
 }
@@ -87,6 +88,7 @@ async function login(req: Request<unknown, unknown, UserLoginDto>, res: Response
     if (error instanceof RouteError) {
       return res.status(error.status).json({ error: error.message });
     }
+    console.error('Unhandled error during login:', error);
     return res.status(HttpStatusCodes.INTERNAL_SERVER_ERROR).json({ error: 'An unexpected error occurred.' });
   }
 }

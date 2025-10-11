@@ -7,12 +7,24 @@ const prisma = new PrismaClient();
  * @param id - 用户 ID
  */
 export async function findUserByIdWithRoles(id: number) {
-  return prisma.user.findUnique({
+  const user = await prisma.user.findUnique({
     where: { id },
     include: {
-      roles: true, // 包含用户的角色信息
+      roles: {          // 先拿到桥表
+        include: {
+          role: true,   // 再拿到真正的 Role
+        },
+      },
     },
   });
+
+  if (!user) return null;
+
+  // 拍平成类型声明要的 Role[]
+  return {
+    ...user,
+    roles: user.roles.map(r => r.role),
+  };
 }
 
 /**

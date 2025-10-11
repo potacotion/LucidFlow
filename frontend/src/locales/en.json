@@ -1,0 +1,68 @@
+
+{
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "close": "Close",
+    "submit": "Submit",
+    "username": "Username",
+    "password": "Password",
+    "email": "Email"
+  },
+  "views": {
+    "initialization": {
+      "title": "Initial Setup",
+      "message": "Welcome! Please complete the initial configuration to proceed."
+    },
+    "login": {
+      "title": "Login",
+      "loginButton": "Sign In"
+    },
+    "register": {
+      "title": "Create Account",
+      "registerButton": "Sign Up"
+    },
+    "settings": {
+      "title": "Settings",
+      "general": "General",
+      "security": "Security",
+      "language": "Language"
+    }
+  },
+  "components": {
+    "appLayout": {},
+    "configPanel": {
+      "title": "Configuration Panel"
+    },
+    "fileExplorer": {
+      "title": "File Explorer",
+      "newFile": "New File",
+      "newFolder": "New Folder"
+    },
+    "fileSaveModal": {
+      "title": "Save Workflow",
+      "fileName": "File Name",
+      "saveAs": "Save As"
+    },
+    "leftSidebar": {
+      "explorer": "Explorer",
+      "settings": "Settings"
+    },
+    "nodePalette": {
+      "title": "Node Palette",
+      "search": "Search nodes..."
+    },
+    "topToolbar": {
+      "run": "Run",
+      "stop": "Stop",
+      "save": "Save"
+    },
+    "workflowCanvas": {
+      "emptyMessage": "Drag a node from the palette to start."
+    }
+  }
+}
+

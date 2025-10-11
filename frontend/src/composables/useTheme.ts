@@ -1,28 +1,24 @@
-import { ref, onMounted, watch } from 'vue';
+import { computed } from 'vue';
+import { useConfigStore } from '@/stores/config.store';
 
 type Theme = 'light' | 'dark';
 
-const THEME_KEY = 'app-theme';
-
+/**
+ * Provides a reactive theme value and a method to update it.
+ * The actual application of the theme (updating the DOM) is now handled
+ * centrally within the config store.
+ */
 export function useTheme() {
-  const theme = ref<Theme>((localStorage.getItem(THEME_KEY) as Theme) || 'light');
+  const configStore = useConfigStore();
 
+  // The theme is a computed property reacting to the config store.
+  // It falls back to 'light' if the config isn't loaded or doesn't have a theme.
+  const theme = computed<Theme>(() => configStore.config?.theme || 'light');
+
+  // To change the theme, we simply call the store's action.
   const setTheme = (newTheme: Theme) => {
-    theme.value = newTheme;
+    configStore.updateUserSettings({ theme: newTheme });
   };
-
-  const applyTheme = (theme: Theme) => {
-    localStorage.setItem(THEME_KEY, theme);
-    document.documentElement.className = `theme-${theme}`;
-  };
-
-  onMounted(() => {
-    applyTheme(theme.value);
-  });
-
-  watch(theme, (newTheme) => {
-    applyTheme(newTheme);
-  });
 
   return {
     theme,

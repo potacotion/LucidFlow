@@ -1,44 +1,127 @@
 import { defineStore } from 'pinia';
-import { ref } from 'vue';
-import { ConfigService } from '@/api'; // 自动生成的服务
+import { ref, computed, watch } from 'vue';
+import { useStorage } from '@vueuse/core';
+import { useI18n } from 'vue-i18n';
+import { debounce } from 'lodash-es';
+import { ConfigService } from '@/api';
 import { BaseToast } from '@/services/toast';
-import { useWorkflowStore } from './workflow.store'; // Import the workflow store
+import { useWorkflowStore } from './workflow.store';
+import type { GlobalConfig, UserConfig } from '@/types/config';
 
 export const useConfigStore = defineStore('config', () => {
-  const config = ref<any | null>(null); // Use 'any' for now for flexibility
+  const { locale } = useI18n();
+  // --- State ---
+  const config = useStorage<any>('lucid-flow-config', {});
   const isLoading = ref(false);
 
-  async function fetchConfig() {
-    const workflowStore = useWorkflowStore(); // Get instance inside the action
+  // --- Getters ---
+  const effectiveConfig = computed(() => config.value);
+
+  const globalConfig = computed(() => {
+    const { appName, multiUserMode, theme, language } = config.value || {};
+    return { appName, multiUserMode, theme, language };
+  });
+
+  const userConfig = computed(() => {
+    const { theme, language } = config.value || {};
+    return { theme, language };
+  })
+
+
+
+  const _debouncedSaveUserConfig = debounce(async (settings: UserConfig) => {
+    try {
+      await ConfigService.putApiConfigUser(settings);
+      BaseToast.success('个人配置已同步到云端');
+    } catch (error) {
+      BaseToast.error('同步个人配置失败');
+      console.error(error);
+    }
+  }, 1000);
+
+  const _debouncedSaveGlobalConfig = debounce(async (settings: Partial<GlobalConfig>) => {
+    try {
+      await ConfigService.putApiConfigGlobal(settings);
+      BaseToast.success('全局配置已同步到云端');
+    } catch (error) {
+      BaseToast.error('同步全局配置失败');
+      console.error(error);
+    }
+  }, 1000);
+
+
+  // --- Actions ---
+
+  async function fetchConfig(force = false) {
+    if (config.value && Object.keys(config.value).length > 0 && !force) {
+      return;
+    }
+
     isLoading.value = true;
     try {
-      const response = await ConfigService.getApiConfig();
-      config.value = response;
-
-      // After fetching, update the workflow store with the node definitions
-      if (response && response.nodeDefinitions) {
-        workflowStore.setNodeDefinitions(response.nodeDefinitions);
-      }
-
+      config.value = await ConfigService.getApiConfig();
     } catch (error) {
-      BaseToast.error('Failed to load configuration.');
+      BaseToast.error('加载配置失败');
       console.error(error);
     } finally {
       isLoading.value = false;
     }
   }
 
-  async function updateUserSettings(newSettings: object) {
-    try {
-        await ConfigService.putApiConfigUser(newSettings);
-        BaseToast.success('Settings updated successfully!');
-        // Re-fetch config to get the merged result
-        await fetchConfig();
-    } catch (error) {
-        BaseToast.error('Failed to update settings.');
-        console.error(error);
-    }
+  function updateUserSettings(newSettings: UserConfig) {
+    if (!config.value) return;
+
+    config.value = { ...config.value, ...newSettings };
+    BaseToast.success('个人配置已更新');
+    _debouncedSaveUserConfig(newSettings);
   }
 
-  return { config, isLoading, fetchConfig, updateUserSettings };
+  function updateGlobalSettings(newSettings: Partial<GlobalConfig>) {
+    if (!config.value) return;
+
+    config.value = { ...config.value, ...newSettings };
+    BaseToast.success('全局配置已更新');
+    _debouncedSaveGlobalConfig(newSettings);
+  }
+
+  // --- Watchers ---
+
+  // Unified handler for all config changes
+  watch(
+    config,
+    (newConfig, oldConfig) => {
+      if (!newConfig) return;
+
+      // 1. Update theme
+      const newTheme = newConfig.theme || 'light';
+      document.documentElement.className = `theme-${newTheme}`;
+
+      // 2. Update language
+      if (newConfig.language && newConfig.language !== oldConfig?.language) {
+        locale.value = newConfig.language;
+      }
+
+      // 3. Update workflow node definitions
+      if (newConfig.nodeDefinitions) {
+        // Simple check to avoid unnecessary updates if the definitions object hasn't changed.
+        // For deeper checks, a more robust comparison might be needed.
+        if (JSON.stringify(newConfig.nodeDefinitions) !== JSON.stringify(oldConfig?.nodeDefinitions)) {
+            const workflowStore = useWorkflowStore();
+            workflowStore.setNodeDefinitions(newConfig.nodeDefinitions);
+        }
+      }
+    },
+    { deep: true, immediate: true }
+  );
+
+  return {
+    isLoading,
+    config,
+    effectiveConfig,
+    globalConfig,
+    userConfig,
+    fetchConfig,
+    updateUserSettings,
+    updateGlobalSettings,
+  };
 });

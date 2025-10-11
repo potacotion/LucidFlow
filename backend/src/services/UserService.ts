@@ -12,6 +12,7 @@ const SALT_ROUNDS = 10;
 
 /**
  * Register a new user.
+ * The first user to register is automatically assigned the 'Admin' role.
  */
 async function register(userData: UserRegisterDto): Promise<Omit<User, 'pwdHash'>> {
   const { email, name, password } = userData;
@@ -22,6 +23,28 @@ async function register(userData: UserRegisterDto): Promise<Omit<User, 'pwdHash'
   }
 
   const pwdHash = await bcrypt.hash(password, SALT_ROUNDS);
+  const userCount = await prisma.user.count();
+
+  let adminRoleData = {};
+  if (userCount === 0) {
+    const adminRole = await prisma.role.upsert({
+      where: { name: 'Admin' },
+      update: {},
+      create: { name: 'Admin' },
+    });
+    adminRoleData = {
+      roles: {
+        create: [
+          {
+            assignedBy: 'System',
+            role: {
+              connect: { id: adminRole.id },
+            },
+          },
+        ],
+      },
+    };
+  }
 
   const user = await prisma.user.create({
     data: {
@@ -33,6 +56,7 @@ async function register(userData: UserRegisterDto): Promise<Omit<User, 'pwdHash'
           data: {}, // Initialize with empty settings
         },
       },
+      ...adminRoleData,
     },
   });
 
@@ -47,7 +71,21 @@ async function register(userData: UserRegisterDto): Promise<Omit<User, 'pwdHash'
 async function login(credentials: UserLoginDto): Promise<{ token: string }> {
   const { email, password } = credentials;
 
-  const user = await prisma.user.findUnique({ where: { email } });
+  const user = await prisma.user.findUnique({
+    where: { email },
+    include: {
+      roles: {
+        select: { // Use select for explicit shaping
+          role: {
+            select: {
+              name: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
   if (!user) {
     throw new RouteError(HttpStatusCodes.UNAUTHORIZED, 'Invalid email or password.');
   }
@@ -57,7 +95,14 @@ async function login(credentials: UserLoginDto): Promise<{ token: string }> {
     throw new RouteError(HttpStatusCodes.UNAUTHORIZED, 'Invalid email or password.');
   }
 
-  const payload = { id: user.id };
+  const userRoles = user.roles.map(r => r.role.name);
+  const isAdmin = userRoles.includes('Admin');
+
+  const payload = {
+    id: user.id,
+    role: isAdmin ? 'Admin' : (userRoles[0] || 'user'),
+  };
+  
   const secret = EnvVars.Jwt.Secret;
   const options = { expiresIn: EnvVars.Jwt.Exp };
 
@@ -69,12 +114,32 @@ async function login(credentials: UserLoginDto): Promise<{ token: string }> {
 /**
  * Assign a role to a user.
  */
-async function assignRoleToUser(userId: number, roleId: number): Promise<User> {
+async function assignRoleToUser(userId: number, roleId: number, assignerName = 'System'): Promise<User> {
+  // Check if the connection already exists
+  const existingLink = await prisma.rolesOnUsers.findUnique({
+    where: {
+      userId_roleId: {
+        userId,
+        roleId,
+      },
+    },
+  });
+
+  if (existingLink) {
+    // If the role is already assigned, just return the user without making changes.
+    return prisma.user.findUniqueOrThrow({ where: { id: userId } });
+  }
+
   return prisma.user.update({
     where: { id: userId },
     data: {
       roles: {
-        connect: { id: roleId },
+        create: [{ // Use 'create' to add a new record to the join table
+          assignedBy: assignerName,
+          role: {
+            connect: { id: roleId }, // Connect to the existing role
+          },
+        }],
       },
     },
   });
@@ -88,7 +153,12 @@ async function removeRoleFromUser(userId: number, roleId: number): Promise<User>
     where: { id: userId },
     data: {
       roles: {
-        disconnect: { id: roleId },
+        delete: { // Use 'delete' with the composite key to remove a record from the join table
+          userId_roleId: {
+            userId,
+            roleId,
+          },
+        },
       },
     },
   });

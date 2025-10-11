@@ -16,6 +16,18 @@ export const useAuthStore = defineStore('auth', () => {
 
   // --- Getters ---
   const isAuthenticated = computed(() => !!token.value);
+  const isAdmin = computed(() => user.value?.role === 'Admin');
+
+  // --- Helper Functions ---
+  function _decodeAndSetUser(tokenToDecode: string) {
+    try {
+      const payload = JSON.parse(atob(tokenToDecode.split('.')[1]));
+      user.value = { id: payload.id, role: payload.role };
+    } catch (error) {
+      console.error('Failed to decode JWT:', error);
+      user.value = null;
+    }
+  }
 
   // --- Actions ---
 
@@ -26,15 +38,7 @@ export const useAuthStore = defineStore('auth', () => {
   function setToken(newToken: string) {
     token.value = newToken;
     localStorage.setItem('token', newToken);
-
-    // Decode JWT payload
-    try {
-      const payload = JSON.parse(atob(newToken.split('.')[1]));
-      user.value = { id: payload.id, role: payload.role };
-    } catch (error) {
-      console.error('Failed to decode JWT:', error);
-      user.value = null;
-    }
+    _decodeAndSetUser(newToken);
   }
 
   /**
@@ -105,10 +109,18 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  // --- Initialization ---
+  // If a token exists in localStorage on store creation, decode it.
+  if (token.value) {
+    _decodeAndSetUser(token.value);
+  }
+
+
   return {
     token,
     user,
     isAuthenticated,
+    isAdmin,
     setToken,
     logout,
     login,

@@ -5,8 +5,11 @@ import BaseButton from '@/components/atoms/BaseButton.vue'
 import BaseIcon from '@/components/atoms/BaseIcon.vue'
 import BaseDivider from '@/components/atoms/BaseDivider.vue'
 import { useTheme } from '@/composables/useTheme'
+import { useAuthStore } from '@/stores/auth.store'
+import { ref } from 'vue'
 
 import { defineProps } from 'vue'
+import { RouterLink } from 'vue-router'
 import type { SidebarTab } from '@/stores/ui.store'
 
 const props = defineProps<{
@@ -16,6 +19,12 @@ const props = defineProps<{
 const emit = defineEmits(['tab-click'])
 
 const { setTheme, theme } = useTheme()
+const authStore = useAuthStore()
+const isUserMenuOpen = ref(false)
+
+const handleLogout = () => {
+  authStore.logout()
+}
 
 const handleTabClick = (tab: 'nodes' | 'files') => {
   emit('tab-click', tab)
@@ -69,16 +78,38 @@ const toggleTheme = () => {
         </div>
       </BaseStack>
 
-      <BaseBox px="xs">
-        <BaseDivider />
-      </BaseBox>
-
-      <!-- Bottom Section: Action buttons -->
       <BaseStack direction="column" class="button-group">
+        <BaseBox px="xs">
+          <BaseDivider />
+        </BaseBox>
         <div class="sidebar-button-wrapper">
           <BaseButton square size="xl" variant="text" @click="toggleTheme">
             <BaseIcon :icon="theme === 'dark' ? 'fa-solid fa-sun' : 'fa-solid fa-moon'" />
           </BaseButton>
+        </div>
+        <div class="sidebar-button-wrapper">
+          <RouterLink to="/settings">
+            <BaseButton square size="xl" variant="text">
+              <BaseIcon icon="fa-solid fa-gear" />
+            </BaseButton>
+          </RouterLink>
+        </div>
+      </BaseStack>
+
+      <!-- Bottom Section: User Profile & Logout -->
+      <BaseStack direction="column" class="button-group">
+        <div
+          class="sidebar-button-wrapper user-menu-container"
+          @mouseenter="isUserMenuOpen = true"
+          @mouseleave="isUserMenuOpen = false"
+        >
+          <BaseButton square size="xl" variant="text">
+            <BaseIcon icon="fa-solid fa-user" />
+          </BaseButton>
+
+          <div v-if="isUserMenuOpen" class="user-menu-popover">
+            <BaseButton variant="text" size="base" @click="handleLogout"> Logout </BaseButton>
+          </div>
         </div>
       </BaseStack>
     </BaseStack>
@@ -143,5 +174,23 @@ const toggleTheme = () => {
 /* Increase the size of the icons inside the sidebar buttons */
 :deep(.base-icon) {
   font-size: 24px !important; /* Adjust size as needed */
+}
+
+.user-menu-container {
+  position: relative;
+}
+
+.user-menu-popover {
+  position: absolute;
+  bottom: 5px;
+  left: 100%;
+  margin-left: var(--sp-3);
+  background-color: var(--c-background-overlay);
+  border-radius: var(--radius-md);
+  box-shadow: var(--c-shadow-lg);
+  padding: var(--sp-2);
+  z-index: 10;
+  width: max-content;
+  border: 1px solid var(--c-divider);
 }
 </style>
