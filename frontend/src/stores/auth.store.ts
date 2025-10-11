@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
-import { AuthService, type UserLoginDto } from '@/api';
+import { AuthService, ConfigService, type UserLoginDto } from '@/api';
 
 // Define the shape of the user object we might get from the token
 interface User {
@@ -74,6 +74,37 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  /**
+   * Checks for single-user mode and attempts to log in with default credentials.
+   * @returns {Promise<boolean>} - True if login was successful, false otherwise.
+   */
+  async function trySingleUserLogin(): Promise<boolean> {
+    try {
+      const { isMultiUser } = await ConfigService.getApiConfigIsMultiUser();
+
+      if (isMultiUser) {
+        return false;
+      }
+
+      // It's single-user mode, attempt login with default creds
+      const response = await AuthService.postApiAuthLogin({
+        email: 'admin@e.com',
+        password: 'password',
+      });
+
+      if (response.token) {
+        setToken(response.token);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      // This can happen if the default user doesn't exist, etc.
+      // We'll just fail silently and let the normal login flow proceed.
+      console.warn('Silent single-user login attempt failed:', error);
+      return false;
+    }
+  }
+
   return {
     token,
     user,
@@ -81,5 +112,6 @@ export const useAuthStore = defineStore('auth', () => {
     setToken,
     logout,
     login,
+    trySingleUserLogin,
   };
 });

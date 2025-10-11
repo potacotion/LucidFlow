@@ -4,6 +4,9 @@ import EnvVars from '@src/common/constants/EnvVars';
 import { UserSettings } from '@prisma/client';
 import * as UserRepo from '@src/repos/UserRepo';
 import { Prisma } from '@prisma/client';
+import { RouteError } from '@src/common/util/route-errors';
+import HttpStatusCodes from '@src/common/constants/HttpStatusCodes';
+import UserService from './UserService';
 
 
 // Paths to configuration files
@@ -86,6 +89,25 @@ async function updateGlobalSettings(newSettings: object): Promise<void> {
     }
 }
 
+/**
+ * Initialize global settings, only if no users exist.
+ */
+async function initializeSettings(newSettings: object): Promise<void> {
+    const usersExist = await UserService.hasUsers();
+    if (usersExist) {
+        throw new RouteError(HttpStatusCodes.FORBIDDEN, 'Cannot initialize settings when users already exist.');
+    }
+    await updateGlobalSettings(newSettings);
+}
+
+/**
+ * Checks if the application is in multi-user mode from the global config.
+ */
+async function isMultiUserMode(): Promise<boolean> {
+    const config = await getGlobalConfig() as { multiUserMode?: boolean };
+    // Default to true if not specified
+    return config.multiUserMode !== false;
+}
 
 // **** Export default **** //
 
@@ -95,4 +117,6 @@ export default {
   getFullConfig,
   updateUserSettings,
   updateGlobalSettings,
+  initializeSettings,
+  isMultiUserMode,
 } as const;

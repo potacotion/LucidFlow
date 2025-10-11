@@ -34,5 +34,8 @@ export default {
     Root: '/',
     User: '/user',
     Global: '/global',
+    NeedsInitialization: '/needs-initialization',
+    Initialize: '/initialize',
+    IsMultiUser: '/is-multi-user',
   }
 } as const;

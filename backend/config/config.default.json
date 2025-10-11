@@ -1,8 +1,6 @@
 {
   "appName": "LucidFlow",
   "multiUserMode": true,
-  "theme": {
-    "defaultMode": "light",
-    "allowUserOverride": true
-  }
+  "theme": "light",
+  "language": "CN-ZH"
 }

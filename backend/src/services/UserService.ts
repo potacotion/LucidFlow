@@ -94,9 +94,18 @@ async function removeRoleFromUser(userId: number, roleId: number): Promise<User>
   });
 }
 
+/**
+ * Check if there are any users in the database.
+ */
+async function hasUsers(): Promise<boolean> {
+  const userCount = await prisma.user.count();
+  return userCount > 0;
+}
+
 export default {
   register,
   login,
   assignRoleToUser,
   removeRoleFromUser,
+  hasUsers,
 } as const;
