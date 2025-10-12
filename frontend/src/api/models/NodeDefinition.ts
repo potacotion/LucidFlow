@@ -9,6 +9,7 @@ export type NodeDefinition = {
     label?: string;
     description?: string;
     archetype?: NodeDefinition.archetype;
+    version?: string;
     ports?: Array<PortDefinition>;
     properties?: Array<PropertyDefinition>;
 };

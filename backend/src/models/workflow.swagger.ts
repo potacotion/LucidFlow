@@ -14,6 +14,8 @@
  *         archetype:
  *           type: string
  *           enum: [action, pure, branch, merge, fork, join, loop, compound]
+ *         version:
+ *           type: string
  *         ports:
  *           type: array
  *           items:

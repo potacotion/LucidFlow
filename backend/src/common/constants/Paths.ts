@@ -15,9 +15,15 @@ export default {
     Delete: '/:id',
     GetAll: '/',
     Run: '/:id/run',
+    // [新增] 用于外部 SDK/API 触发工作流
+    Trigger: '/:id/trigger',
   },
   NodeDefinitions: {
     Base: '/node-definitions',
+    GetAll: '/',
+  },
+  AllNodeDefinitions: {
+    Base: '/all-node-definitions',
     GetAll: '/',
   },
   Folders: {

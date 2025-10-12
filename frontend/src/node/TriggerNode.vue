@@ -1,6 +1,13 @@
 <template>
-  <div class="base-node" :class="{ 'node-running': isRunning, 'vue-flow__node-selected': selected }">
-    <div class="title">{{ data.label || 'Node' }}</div>
+  <div class="base-node" :class="{ 'node-running': isRunning }">
+    <div class="title">
+      <span>{{ data.label || 'Node' }}</span>
+      <BaseIcon
+        icon="fa-solid fa-play"
+        class="execute-button"
+        @click.stop="triggerWorkflow"
+      />
+    </div>
 
     <div class="ports-container">
       <!-- Control Flow Ports -->
@@ -55,6 +62,7 @@
 import { computed } from 'vue'
 import { Handle, Position } from '@vue-flow/core'
 import { stringToColor } from '@/utils/color'
+import BaseIcon from '@/components/atoms/BaseIcon.vue'
 import type { PortDefinition } from '@/types/workflow'
 import { useWorkflowStore } from '@/stores/workflow.store';
 
@@ -70,8 +78,7 @@ const isRunning = computed(() => workflowStore.isNodeRunning(props.id))
 // Vue Flow injects the node's id as a prop
 const props = defineProps<{
   id: string,
-  data: NodeData,
-  selected?: boolean
+  data: NodeData
 }>()
 
 const controlInputs = computed(() => (props.data.input || []).filter(p => p.type === 'control'))
@@ -82,6 +89,9 @@ const dataOutputs = computed(() => (props.data.output || []).filter(p => p.type 
 const hasControlPorts = computed(() => controlInputs.value.length > 0 || controlOutputs.value.length > 0)
 const hasDataPorts = computed(() => dataInputs.value.length > 0 || dataOutputs.value.length > 0)
 
+function triggerWorkflow() {
+  workflowStore.startExecutionFromNode(props.id);
+}
 </script>
 
 <style scoped>
@@ -117,18 +127,28 @@ const hasDataPorts = computed(() => dataInputs.value.length > 0 || dataOutputs.v
   animation: pulse 1.5s infinite;
 }
 
-.vue-flow__node-selected {
-  border-color: var(--c-primary);
-  box-shadow: 0 0 12px rgba(var(--c-primary-rgb), 0.5);
-}
-
 /* ========= 标题区 ========= */
 .title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   padding: 8px 12px;
   background: var(--c-fill-lighter);
   font-weight: 600;
-  text-align: center;
   border-bottom: 1px solid var(--c-border-base);
+}
+
+.execute-button {
+  color: var(--c-text-placeholder);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: var(--radius-sm);
+  transition: all 0.2s ease-in-out;
+}
+
+.execute-button:hover {
+  color: var(--c-text-primary);
+  background-color: var(--c-fill-light);
 }
 
 /* ========= 端口区 ========= */
@@ -189,4 +209,3 @@ const hasDataPorts = computed(() => dataInputs.value.length > 0 || dataOutputs.v
   border: 1px solid var(--c-background) !important;
 }
 </style>
-

@@ -85,6 +85,7 @@ const handleSaveAs = () => {
 .main-button:hover,
 .trigger-button:hover {
   /* background-color: var(--c-fill-lighter); */
+
 }
 
 .divider {

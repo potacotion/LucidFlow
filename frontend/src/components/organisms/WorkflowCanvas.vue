@@ -8,11 +8,14 @@ import { MiniMap } from '@vue-flow/minimap';
 import type { NodeDefinition } from '@/types/workflow';
 
 // 本地组件
-import basenode from '@/node/BaseNode.vue';
+import BaseNode from '@/node/BaseNode.vue';
+import TriggerNode from '@/node/TriggerNode.vue';
+
 
 // 状态管理
 import { useUIStore } from '@/stores/ui.store';
 import { useWorkflowStore } from '@/stores/workflow.store';
+import { useNodeStore } from '@/stores/node.store';
 
 // 工具
 import { stringToColor } from '@/utils/color';
@@ -25,6 +28,7 @@ import '@vue-flow/minimap/dist/style.css';
 const { onConnect, project, onNodeClick, onPaneClick, removeEdges, getEdges, onNodesChange, onEdgesChange } = useVueFlow();
 const uiStore = useUIStore();
 const workflowStore = useWorkflowStore();
+const nodeStore = useNodeStore();
 
 // --- WebSocket Integration ---
 // This will now automatically connect/disconnect as the store's runId changes.
@@ -48,23 +52,24 @@ onConnect((connection) => {
 // 让工作流存储成为唯一的真相来源。
 // 我们从存储中计算出一个兼容 VueFlow 的节点版本。
 const nodes = computed<Node[]>(() => {
-  // By accessing runningNodeIds here, we make this computed property
-  // reactive to any changes within the Set.
   const runningIds = workflowStore.runningNodeIds;
-  return workflowStore.nodes.map(n => ({
-    id: n.id,
-    type: 'basenode', // 我们的所有节点都使用相同的 BaseNode 组件进行渲染
-    position: n.position,
-    selected: n.id === uiStore.selectedNodeId,
-    data: {
-      label: n.label,
-      // 将所有端口传递给 BaseNode 以进行渲染
-      input: n.ports.filter(p => p.direction === 'in'),
-      output: n.ports.filter(p => p.direction === 'out'),
-      // Pass running status to the node for dynamic styling
-      isRunning: runningIds.includes(n.id),
-    },
-  }));
+  return workflowStore.nodes.map(n => {
+    const definition = nodeStore.getDefinitionByType(n.type);
+    const nodeType = definition?.isTriggerable ? 'triggerNode' : 'baseNode';
+
+    return {
+      id: n.id,
+      type: nodeType,
+      position: n.position,
+      selected: n.id === uiStore.selectedNodeId,
+      data: {
+        label: n.label,
+        input: n.ports.filter(p => p.direction === 'in'),
+        output: n.ports.filter(p => p.direction === 'out'),
+        isRunning: runningIds.includes(n.id),
+      },
+    };
+  });
 });
 
 // 边缘由存储管理，我们将其与 VueFlow 同步
@@ -182,8 +187,11 @@ onEdgesChange((changes: EdgeChange[]) => {
   >
     <Background />
     <MiniMap pannable zoomable />
-    <template #node-basenode="basenodeProps">
-      <basenode v-bind="basenodeProps" />
+    <template #node-baseNode="props">
+      <BaseNode v-bind="props" />
+    </template>
+    <template #node-triggerNode="props">
+      <TriggerNode v-bind="props" />
     </template>
   </VueFlow>
 </template>

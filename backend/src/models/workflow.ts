@@ -6,6 +6,12 @@ export type NodeDefinition = {
   /** 类型的唯一标识 (e.g., "openai/gpt4", "logic/if") */
   type: string;
 
+  /**
+   * [新增] 是否可以作为工作流的外部触发起点。
+   * 如果为 true，则 UI 应允许配置 triggerTag 属性。
+   */
+  isTriggerable?: boolean;
+
   /** UI上展示的名称 (e.g., "GPT-4", "If Condition") */
   label: string;
 
@@ -46,11 +52,7 @@ export type NodeDefinition = {
   /**
    * [核心] 节点的执行函数，在沙箱环境中执行节点的核心逻辑
    */
-  run: (params: {
-    input: { [portName: string]: any };
-    params: { [propertyName: string]: any };
-    logger: Logger;
-  }) => Promise<{ [portName: string]: any }>;
+  run: (params: RunParams) => Promise<{ [portName: string]: any }>;
 
   /**
    * [新增] 节点的语义化版本 (e.g., "1.0.0", "1.2.5")。
@@ -67,6 +69,8 @@ export interface RunParams {
   input: Record<string, any>;
   params: Record<string, any>;
   logger: Logger;
+  /** [新增] 引擎提供的钩子函数，用于节点触发外部行为 */
+  hooks: EngineHooks;
 }
 
 /**
@@ -303,4 +307,9 @@ export type NodeStatus = 'success' | 'error' | 'running';
 export interface EngineHooks {
   onNodeStart: (nodeId: string, archetype: string) => void;
   onNodeEnd: (nodeId: string, status: NodeStatus) => void;
+
+  /**
+   * [新增] 通用自定义事件钩子，用于节点内部触发外部行为 (如 websocket 发送数据)。
+   */
+  onCustomEvent: (eventName: string, payload: any) => void;
 }

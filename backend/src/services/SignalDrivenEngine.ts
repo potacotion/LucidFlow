@@ -75,33 +75,31 @@
     private graphWalker!: GraphWalker;
     private hooks?: EngineHooks;
 
-    public async run(graph: { nodes: NodeInstance[], edges: Edge[] }, context?: { runId: string; hooks?: EngineHooks }): Promise<NodeOutput | void> {
-      this.hooks = context?.hooks;
+    public async run(graph: { nodes: NodeInstance[], edges: Edge[] }, config: { runId: string; startNodeId: string; initialData?: any; hooks?: EngineHooks }): Promise<NodeOutput | void> {
+      this.hooks = config.hooks;
       this.executionQueue = [];
       this.resultsCache.clear();
       this.activeJoins.clear();
       this.activeAsyncTasks.clear();
       this.graphWalker = new GraphWalker(graph.nodes, graph.edges);
 
-      if (context) {
-          this.resultsCache.set('context', context);
+      const { runId, startNodeId, initialData } = config;
+      this.resultsCache.set('context', { runId, hooks: this.hooks }); // Store context for loop etc.
+
+      // 1. 查找起始节点
+      const startNode = this.graphWalker.findNodeById(startNodeId);
+      if (!startNode) {
+          throw new Error(`Start node ID ${startNodeId} not found in the graph.`);
       }
 
-      const startNodes = graph.nodes.filter(node => {
-          const def = getNodeDefinition(node);
-          if (def.archetype !== 'action' && def.archetype !== 'stream-action') {
-              return false;
-          }
-          const controlInputPorts = def.ports.filter(p => p.type === 'control' && p.direction === 'in');
-          if (controlInputPorts.length === 0) return true;
-          return !controlInputPorts.some(p => this.graphWalker.findUpstreamEdge(node.id, p.name));
-      });
-
-      console.log(`[Engine] Found ${startNodes.length} start nodes.`);
-
-      for (const startNode of startNodes) {
-        this.enqueueSignal(startNode.id, 'in', 'control'); // Assuming a default 'in' control port for starting
+      // 2. 将 initialData 存储在特殊缓存中，供 startNode 消费
+      if (initialData !== undefined) {
+          this.resultsCache.set(`INPUT_DATA_${startNodeId}`, initialData);
       }
+      
+      // 3. 启动执行流
+      // 假设所有触发节点都有一个默认的控制输入端口 'in'
+      this.enqueueSignal(startNodeId, 'in', 'control');
 
       await this.loop();
 
@@ -175,6 +173,20 @@
       if (context?.loop && (targetPortName === 'item' || targetPortName === 'index')) {
           return context.loop[targetPortName];
       }
+
+      // [新增逻辑] 检查是否有注入的初始数据 (仅用于工作流的起始节点)
+      if (this.resultsCache.has(`INPUT_DATA_${targetNode.id}`)) {
+          const def = getNodeDefinition(targetNode);
+          // 查找第一个数据输入端口，仅当目标端口与该端口匹配时才注入
+          const dataInPort = (targetNode.ports || def.ports).find(p => p.type === 'data' && p.direction === 'in');
+          
+          if (dataInPort && dataInPort.name === targetPortName) {
+              const initialData = this.resultsCache.get(`INPUT_DATA_${targetNode.id}`);
+              this.resultsCache.delete(`INPUT_DATA_${targetNode.id}`); // 确保只使用一次
+              console.log(`[DEBUG] Injecting initial data for start node ${targetNode.id}.${targetPortName}`);
+              return initialData;
+          }
+      }
       
       const edge = this.graphWalker.findUpstreamEdge(targetNode.id, targetPortName);
       if (!edge) {
@@ -216,7 +228,7 @@
       }
     
       const inputsForPureNode = await this.resolveAllInputs(sourceNode, signal);
-      const outputs: NodeOutput = await NodeExecutor.executeNodeLogic(sourceNode, inputsForPureNode);
+      const outputs: NodeOutput = await NodeExecutor.executeNodeLogic(sourceNode, inputsForPureNode, this.hooks!);
       console.log(`[DEBUG] Recursively executed pure node ${sourceNodeId}. Outputs:`, outputs);
 
       this.resultsCache.set(sourceNodeId, outputs);
@@ -232,7 +244,7 @@
 
           switch (definition.archetype) {
               case 'action': {
-                  const outputs = await NodeExecutor.executeNodeLogic(node, inputs);
+                  const outputs = await NodeExecutor.executeNodeLogic(node, inputs, this.hooks!);
                   this.resultsCache.set(node.id, outputs);
                   definition.ports
                       .filter(p => p.type === 'control' && p.direction === 'out')
@@ -241,7 +253,7 @@
                   break;
               }
               case 'stream-action': {
-                  const result = await NodeExecutor.executeNodeLogic(node, inputs);
+                  const result = await NodeExecutor.executeNodeLogic(node, inputs, this.hooks!);
                   if (!isSubscribable(result)) {
                       throw new Error(`stream-action node ${node.id} did not return a subscribable object.`);
                   }
@@ -251,7 +263,7 @@
                   break;
               }
               case 'pure': {
-                  const outputs = await NodeExecutor.executeNodeLogic(node, inputs);
+                  const outputs = await NodeExecutor.executeNodeLogic(node, inputs, this.hooks!);
                   this.resultsCache.set(node.id, outputs);
                   this.hooks?.onNodeEnd(node.id, 'success');
                   break;

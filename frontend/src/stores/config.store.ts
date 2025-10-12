@@ -101,15 +101,6 @@ export const useConfigStore = defineStore('config', () => {
         locale.value = newConfig.language;
       }
 
-      // 3. Update workflow node definitions
-      if (newConfig.nodeDefinitions) {
-        // Simple check to avoid unnecessary updates if the definitions object hasn't changed.
-        // For deeper checks, a more robust comparison might be needed.
-        if (JSON.stringify(newConfig.nodeDefinitions) !== JSON.stringify(oldConfig?.nodeDefinitions)) {
-            const workflowStore = useWorkflowStore();
-            workflowStore.setNodeDefinitions(newConfig.nodeDefinitions);
-        }
-      }
     },
     { deep: true, immediate: true }
   );

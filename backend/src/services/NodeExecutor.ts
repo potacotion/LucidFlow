@@ -1,5 +1,5 @@
-import { NodeInstance, NodeDefinition, Logger } from '@src/models/workflow';
-import { NODE_DEFINITIONS } from './node-definitions';
+import { NodeInstance, NodeDefinition, Logger, EngineHooks } from '@src/models/workflow'; // 导入 EngineHooks
+import NodeRegistry from './node-definitions'; // 导入 NodeRegistry
 
 /**
  * A simple logger implementation that proxies to the console.
@@ -12,10 +12,11 @@ const consoleLogger: Logger = {
   debug: (message: string, ...args: any[]) => console.debug(`[DEBUG] ${message}`, ...args),
 };
 
-function getNodeDefinition(nodeType: string): NodeDefinition {
-    const definition = NODE_DEFINITIONS.get(nodeType);
+function getNodeDefinition(node: NodeInstance): NodeDefinition {
+    // 假设 NodeRegistry 具有 getDefinition 方法，如 SignalDrivenEngine 中所示
+    const definition = NodeRegistry.getDefinition(node.type, node.version);
     if (!definition) {
-      throw new Error(`Node definition not found for type: ${nodeType}`);
+      throw new Error(`Node definition not found for type: ${node.type}, version: ${node.version}`);
     }
     return definition;
 }
@@ -30,10 +31,11 @@ function getNodeDefinition(nodeType: string): NodeDefinition {
  */
 export async function executeNodeLogic(
   node: NodeInstance,
-  inputs: { [key: string]: any }
+  inputs: { [key: string]: any },
+  hooks: EngineHooks
 ): Promise<{ [key: string]: any }> {
   
-  const definition = getNodeDefinition(node.type);
+  const definition = getNodeDefinition(node);
 
   // Prepare parameters for the run function
   const params = node.propertyValues || {};
@@ -44,6 +46,7 @@ export async function executeNodeLogic(
       input: inputs,
       params: params,
       logger: logger,
+      hooks: hooks, // 传递 hooks
     });
     return outputs;
   } catch (error) {

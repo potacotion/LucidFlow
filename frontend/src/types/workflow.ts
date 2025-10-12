@@ -47,6 +47,8 @@ export type NodeDefinition = {
   type: string;
   label: string;
   description?: string;
+  /** 是否可以作为工作流的外部触发起点 */
+  isTriggerable?: boolean;
   archetype: 'action' | 'pure' | 'branch' | 'merge' | 'fork' | 'join' | 'loop' | 'compound';
   ports: PortDefinition[];
   properties?: PropertyDefinition[];
@@ -85,6 +87,7 @@ export interface Edge {
 export interface NodeInstance {
   id: string;
   type: string;
+  version: string;
   label?: string;
   position: { x: number; y: number };
   propertyValues?: { [propertyName: string]: any };

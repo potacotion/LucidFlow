@@ -52,7 +52,8 @@ const startServer = async () => {
         connectionManager.add(runId, ws);
 
         // This is the crucial part: Start the execution only after the WS is connected.
-        WorkflowExecutionManager.startExecution(runId);
+        // For UI/Editor execution, we use a fixed internal tag and no initial data.
+        WorkflowExecutionManager.startExecution(runId, '__INTERNAL_UI_START__');
 
         ws.on('close', () => {
           connectionManager.remove(runId, ws);

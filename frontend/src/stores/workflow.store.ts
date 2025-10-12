@@ -1,7 +1,8 @@
 import { defineStore } from 'pinia';
 import { ref, computed, reactive } from 'vue';
-import type { NodeInstance, Edge, NodeDefinition, PortDefinition } from '@/types/workflow';
+import type { NodeInstance, Edge, PortDefinition, PropertyDefinition } from '@/types/workflow';
 import { useUIStore } from './ui.store';
+import { useNodeStore } from './node.store'; // Import the new node store
 import type { Connection } from '@vue-flow/core';
 import { BaseToast } from '@/services/toast';
 import { WorkflowsService } from '@/api';
@@ -17,9 +18,6 @@ export const useWorkflowStore = defineStore('workflow', () => {
   const edges = ref<Edge[]>([]);
   const currentWorkflowId = ref<string | null>(null);
   const currentWorkflowName = ref<string | null>(null);
-
-  // A repository of all available node blueprints.
-  const nodeDefinitions = ref<Record<string, NodeDefinition>>({});
 
   // --- Real-time Execution State ---
   const runningNodeIds = ref<string[]>([]);
@@ -46,11 +44,14 @@ export const useWorkflowStore = defineStore('workflow', () => {
   /**
    * Gets the NodeDefinition for the currently selected node.
    */
+  const nodeStore = useNodeStore();
+
   const selectedNodeDefinition = computed(() => {
     if (!selectedNode.value) {
       return null;
     }
-    return nodeDefinitions.value[selectedNode.value.type] ?? null;
+    // Fetch definition from the central node store
+    return nodeStore.getDefinitionByType(selectedNode.value.type) ?? null;
   });
 
 
@@ -58,11 +59,11 @@ export const useWorkflowStore = defineStore('workflow', () => {
 
   /**
    * Adds a new node to the canvas based on a definition.
-   * @param type - The type of the node to add (e.g., "logic/if").
+   * @param type - The FULL type of the node to add (e.g., "logic/if/1.0.0").
    * @param position - The initial position of the node on the canvas.
    */
   function addNode(type: string, position: { x: number; y: number }) {
-    const definition = nodeDefinitions.value[type];
+    const definition = nodeStore.getDefinitionByType(type);
     if (!definition) {
       console.error(`Node definition for type "${type}" not found.`);
       return;
@@ -70,13 +71,14 @@ export const useWorkflowStore = defineStore('workflow', () => {
 
     const newNode: NodeInstance = {
       id: generateId('node'),
-      type: definition.type,
+      type: definition.type!,
+      version: definition.version!, // Store the version in the instance
       label: definition.label,
       position,
       // Deep copy ports and properties to the instance
-      ports: JSON.parse(JSON.stringify(definition.ports)),
+      ports: JSON.parse(JSON.stringify(definition.ports || [])),
       propertyValues: definition.properties
-        ? Object.fromEntries(definition.properties.map(p => [p.name, p.defaultValue]))
+        ? Object.fromEntries(definition.properties.map((p: PropertyDefinition) => [p.name, p.defaultValue]))
         : {},
     };
 
@@ -223,7 +225,7 @@ export const useWorkflowStore = defineStore('workflow', () => {
 
       // Rule 2: Control ports on non-join nodes only allow one input connection.
       if (targetPort.type === 'control') {
-        const targetNodeDefinition = nodeDefinitions.value[targetNode.type];
+        const targetNodeDefinition = nodeStore.getDefinitionByType(targetNode.type);
         if (targetNodeDefinition && targetNodeDefinition.archetype !== 'join') {
           BaseToast.warning(`Invalid connection: Port '${targetPort.label}' on a non-join node can only have one control input.`);
           return;
@@ -362,6 +364,44 @@ export const useWorkflowStore = defineStore('workflow', () => {
   }
 
   /**
+   * Starts the execution of the current workflow from a specific trigger node.
+   * @param nodeId The ID of the trigger node to start from.
+   */
+  async function startExecutionFromNode(nodeId: string) {
+    if (!currentWorkflowId.value) {
+      BaseToast.error('Cannot run a workflow that has not been saved.');
+      return;
+    }
+
+    const node = nodes.value.find(n => n.id === nodeId);
+    if (!node) {
+      BaseToast.error('Trigger node not found.');
+      return;
+    }
+
+    const triggerTag = node.propertyValues?.['triggerTag'] as string;
+    if (!triggerTag) {
+      BaseToast.error('This trigger node does not have a valid Trigger Tag configured.');
+      return;
+    }
+
+    // Reset previous run state
+    handleExecutionEnd();
+
+    try {
+      const response = await WorkflowsService.postApiWorkflowsTrigger(currentWorkflowId.value, { triggerTag });
+      if (response.runId) {
+        currentRunId.value = response.runId;
+      } else {
+        throw new Error('runId was not returned from the API.');
+      }
+    } catch (error) {
+      console.error('Failed to start workflow execution from node:', error);
+      BaseToast.error('Failed to start workflow execution from node.');
+    }
+  }
+
+  /**
    * Handles the start of a node's execution from a WebSocket event.
    */
   function handleNodeStart(nodeId: string) {
@@ -409,20 +449,10 @@ export const useWorkflowStore = defineStore('workflow', () => {
     currentRunId.value = null;
   }
 
-  /**
-   * Sets the node definitions for the entire application.
-   * This is typically called once at startup.
-   * @param definitions - A record object where keys are node types and values are NodeDefinition objects.
-   */
-  function setNodeDefinitions(definitions: Record<string, NodeDefinition>) {
-    nodeDefinitions.value = definitions;
-  }
-
   return {
     // State
     nodes,
     edges,
-    nodeDefinitions,
     currentWorkflowId,
     currentWorkflowName,
     currentRunId,
@@ -447,6 +477,6 @@ export const useWorkflowStore = defineStore('workflow', () => {
     handleNodeStart,
     handleNodeEnd,
     handleExecutionEnd,
-    setNodeDefinitions, // Expose the new action
+    startExecutionFromNode,
   };
 });

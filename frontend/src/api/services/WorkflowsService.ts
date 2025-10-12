@@ -109,4 +109,40 @@ export class WorkflowsService {
             },
         });
     }
+    /**
+     * Trigger a workflow with a specific tag and optional initial data.
+     * @param id
+     * @param requestBody
+     * @returns any The ID for the workflow execution run.
+     * @throws ApiError
+     */
+    public static postApiWorkflowsTrigger(
+        id: string,
+        requestBody: {
+            /**
+             * The unique tag of the trigger node to start execution from.
+             */
+            triggerTag?: string;
+            /**
+             * Optional initial data to pass to the trigger node.
+             */
+            initialData?: Record<string, any>;
+        },
+    ): CancelablePromise<{
+        runId?: string;
+    }> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/workflows/{id}/trigger',
+            path: {
+                'id': id,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                400: `Missing triggerTag in request body.`,
+                404: `Workflow or unique trigger node not found.`,
+            },
+        });
+    }
 }

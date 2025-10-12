@@ -8,6 +8,7 @@ import NodeDefinitionRoutes from './NodeDefinitionRoutes';
 import FolderRoutes from './FolderRoutes';
 import UserRoutes from './UserRoutes';
 import ConfigRoutes from './ConfigRoutes';
+import NodeDefinitionService from '@src/services/NodeDefinitionService';
 
 
 // **** Setup **** //
@@ -34,6 +35,27 @@ apiRouter.use(Paths.Users.Base, UserRoutes);
 
 // Add ConfigRouter
 apiRouter.use(Paths.Config.Base, ConfigRoutes);
+
+/**
+ * @swagger
+ * /api/all-node-definitions:
+ *   get:
+ *     tags: [NodeDefinitions]
+ *     summary: 获取所有节点定义（包含所有版本）
+ *     responses:
+ *       200:
+ *         description: 成功获取节点定义列表（所有版本）
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/NodeDefinition'
+ */
+apiRouter.get(Paths.AllNodeDefinitions.Base, (_, res) => {
+  const definitions = NodeDefinitionService.getAllWithVersions();
+  return res.json(definitions);
+});
 
 
 // **** Export default **** //

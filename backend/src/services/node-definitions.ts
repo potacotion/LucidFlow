@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import logger from 'jet-logger';
+import semver from 'semver';
 
 // 使用嵌套Map来存储节点定义：Map<NodeType, Map<Version, NodeDefinition>>
 type RegistryMap = Map<string, Map<string, NodeDefinition>>;
@@ -165,17 +166,31 @@ export class NodeRegistry {
    * @returns 一个包含最新版本 NodeDefinition 的数组。
    */
   public getAllLatestDefinitions(): NodeDefinition[] {
-    const latestDefinitions: NodeDefinition[] = [];
-    for (const versionMap of this.registry.values()) {
-      // 假设版本号可以按字符串正确排序来找到最新版本
-      // 对于语义化版本，需要一个更健壮的排序，但简单字符串排序通常可行
-      const latestVersion = Array.from(versionMap.keys()).sort().pop();
-      if (latestVersion) {
-        latestDefinitions.push(versionMap.get(latestVersion)!);
-      }
-    }
-    return latestDefinitions;
-  }
+   const latestDefinitions: NodeDefinition[] = [];
+   for (const versionMap of this.registry.values()) {
+     const versions = Array.from(versionMap.keys());
+     if (versions.length > 0) {
+       // Use semver to correctly sort versions and find the latest one
+       const latestVersion = versions.sort(semver.rcompare)[0];
+       latestDefinitions.push(versionMap.get(latestVersion)!);
+     }
+   }
+   return latestDefinitions;
+ }
+
+ /**
+  * Gets all registered node definitions from all versions.
+  * @returns A flat array containing all NodeDefinition objects.
+  */
+ public getAllDefinitions(): NodeDefinition[] {
+   const allDefinitions: NodeDefinition[] = [];
+   for (const versionMap of this.registry.values()) {
+     for (const definition of versionMap.values()) {
+       allDefinitions.push(definition);
+     }
+   }
+   return allDefinitions;
+ }
 }
 
 export default NodeRegistry.getInstance();

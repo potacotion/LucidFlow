@@ -18,4 +18,15 @@ export class NodeDefinitionsService {
             url: '/api/node-definitions',
         });
     }
+    /**
+     * 获取所有节点定义（包含所有版本）
+     * @returns NodeDefinition 成功获取节点定义列表（所有版本）
+     * @throws ApiError
+     */
+    public static getApiAllNodeDefinitions(): CancelablePromise<Array<NodeDefinition>> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/all-node-definitions',
+        });
+    }
 }

@@ -8,12 +8,23 @@ import BorderedImmersiveButton from '@/components/molecules/BorderedImmersiveBut
 import SaveButton from '@/components/molecules/SaveButton.vue'
 import { useWorkflowStore } from '@/stores/workflow.store';
 import { useFileStore } from '@/stores/file.store';
+import { useUIStore } from '@/stores/ui.store';
+import { computed } from 'vue';
 
 const workflowStore = useWorkflowStore();
 const fileStore = useFileStore();
+const uiStore = useUIStore();
+
+const isNodeSelected = computed(() => !!uiStore.selectedNodeId);
 
 function handleRunWorkflow() {
   workflowStore.startExecution();
+}
+
+function handleDeleteNode() {
+  if (uiStore.selectedNodeId) {
+    workflowStore.removeNodes([uiStore.selectedNodeId]);
+  }
 }
 </script>
 
@@ -33,6 +44,14 @@ function handleRunWorkflow() {
           <BorderedImmersiveButton tooltip="run" @click="handleRunWorkflow">
             <BaseIcon icon="fa-solid fa-play" />
             Run
+          </BorderedImmersiveButton>
+          <BorderedImmersiveButton
+            tooltip="delete"
+            :disabled="!isNodeSelected"
+            @click="handleDeleteNode"
+          >
+            <BaseIcon icon="fa-solid fa-trash" />
+            Delete
           </BorderedImmersiveButton>
           <SaveButton @save="fileStore.saveFile" @save-as="fileStore.openSaveAsModal" />
         </BaseStack>

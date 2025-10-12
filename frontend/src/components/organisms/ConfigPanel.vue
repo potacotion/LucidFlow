@@ -24,7 +24,24 @@ const uiStore = useUIStore()
 const workflowStore = useWorkflowStore()
 
 /**
- * Helper function to handle property value updates.
+ * Computed property to manage triggerTag for isTriggerable nodes.
+ * We store it directly in propertyValues.triggerTag.
+ */
+const triggerTagValue = computed({
+  get() {
+    return workflowStore.selectedNode?.propertyValues?.triggerTag || '';
+  },
+  set(value: string) {
+    if (workflowStore.selectedNode) {
+        // We use updateNodeProperties to save it, simulating a property update.
+        // The property definition is configured in trigger/manual/1.0.0/index.ts
+        workflowStore.updateNodeProperties(workflowStore.selectedNode.id, { triggerTag: value });
+    }
+  }
+});
+
+/**
+ * Helper function to handle general property value updates.
  * This can be expanded later to include debouncing or other logic.
  */
 function updatePropertyValue(name: string, value: any) {
@@ -94,6 +111,27 @@ function removeDynamicPort(portNameToRemove: string) {
 
       <BaseDivider />
 
+      <!-- Trigger Tag Configuration (for isTriggerable nodes) -->
+      <BaseStack
+          v-if="workflowStore.selectedNodeDefinition?.isTriggerable"
+          direction="column"
+          gap="sm"
+          class="trigger-tag-section"
+      >
+          <label for="triggerTag">
+              <BaseText size="sm" weight="bold">Trigger Tag</BaseText>
+              <BaseText size="xs" color="gray-500">
+                  Unique tag for API/SDK execution.
+              </BaseText>
+          </label>
+          <BaseInput
+              id="triggerTag"
+              v-model="triggerTagValue"
+              placeholder="e.g., main_api_endpoint"
+          />
+      </BaseStack>
+      <BaseDivider v-if="workflowStore.selectedNodeDefinition?.isTriggerable" />
+
       <!-- Dynamic Ports Management -->
       <div v-if="workflowStore.selectedNodeDefinition?.dynamicPorts" class="dynamic-ports-section">
         <BaseStack direction="column" gap="sm">
@@ -132,7 +170,7 @@ function removeDynamicPort(portNameToRemove: string) {
 
         <BaseStack v-else direction="column" gap="lg">
           <div
-            v-for="prop in workflowStore.selectedNodeDefinition.properties"
+            v-for="prop in workflowStore.selectedNodeDefinition.properties.filter(p => p.name !== 'triggerTag')"
             :key="prop.name"
             class="property-item"
           >
