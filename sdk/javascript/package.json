@@ -1,0 +1,17 @@
+{
+  "name": "@lucidflow/sdk-js",
+  "version": "0.1.0",
+  "description": "JavaScript SDK for interacting with the LucidFlow workflow engine.",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "lucidflow",
+    "workflow",
+    "sdk"
+  ],
+  "author": "LucidFlow Team",
+  "license": "ISC"
+}

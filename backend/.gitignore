@@ -5,3 +5,4 @@ temp/
 config.js
 /generated/prisma
 config/config.global.json
+node_modules/

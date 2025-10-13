@@ -2,6 +2,9 @@ import logger from 'jet-logger';
 import { createServer } from 'http';
 import { WebSocketServer } from 'ws';
 import url from 'url';
+import fs from 'fs';
+import path from 'path';
+import express from 'express';
 
 import ENV from '@src/common/constants/ENV';
 import server from './server';
@@ -24,6 +27,23 @@ const startServer = async () => {
 
     // Setup Swagger UI
     setupSwagger(server);
+
+    // Mount static apps
+    const appsDir = path.join(__dirname, 'public/apps');
+    if (fs.existsSync(appsDir)) {
+      const appNames = fs.readdirSync(appsDir);
+      for (const appName of appNames) {
+        const appPath = path.join(appsDir, appName);
+        if (fs.statSync(appPath).isDirectory()) {
+          server.use(`/apps/${appName}`, express.static(appPath));
+          // Add a redirect for the base path without a trailing slash
+          server.get(`/apps/${appName}`, (req, res) => {
+            res.redirect(`/apps/${appName}/`);
+          });
+          logger.info(`Mounted static app '${appName}' at /apps/${appName}`);
+        }
+      }
+    }
 
     // Create HTTP server
     const httpServer = createServer(server);

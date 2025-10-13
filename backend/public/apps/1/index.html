@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot Demo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f4f4f4;
+        }
+        .chat-container {
+            width: 400px;
+            height: 600px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            background-color: #fff;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .messages {
+            flex-grow: 1;
+            padding: 20px;
+            overflow-y: auto;
+            border-bottom: 1px solid #ccc;
+        }
+        .message {
+            margin-bottom: 15px;
+            padding: 10px;
+            border-radius: 20px;
+            line-height: 1.4;
+            max-width: 80%;
+        }
+        .user-message {
+            background-color: #007bff;
+            color: white;
+            align-self: flex-end;
+            margin-left: auto;
+        }
+        .bot-message {
+            background-color: #e9e9eb;
+            color: black;
+            align-self: flex-start;
+        }
+        .input-area {
+            display: flex;
+            padding: 10px;
+        }
+        #message-input {
+            flex-grow: 1;
+            border: 1px solid #ccc;
+            border-radius: 20px;
+            padding: 10px 15px;
+            outline: none;
+        }
+        #send-button {
+            border: none;
+            background-color: #007bff;
+            color: white;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            margin-left: 10px;
+            cursor: pointer;
+            font-size: 18px;
+        }
+        #send-button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+
+<div class="chat-container">
+    <div class="messages" id="messages-container">
+        <!-- Messages will be appended here -->
+    </div>
+    <div class="input-area">
+        <input type="text" id="message-input" placeholder="Type your message...">
+        <button id="send-button">→</button>
+    </div>
+</div>
+
+<script type="module">
+    import { createLucidFlow } from './sdk.js';
+
+    // --- Configuration ---
+    // IMPORTANT: Replace with the actual ID of your workflow
+    const WORKFLOW_ID = 'your-workflow-id-goes-here'; 
+
+    // --- DOM Elements ---
+    const messagesContainer = document.getElementById('messages-container');
+    const messageInput = document.getElementById('message-input');
+    const sendButton = document.getElementById('send-button');
+
+    // --- SDK Initialization ---
+    // No config needed, SDK will auto-detect the backend URL
+    const lucidflow = createLucidFlow();
+
+    // --- Functions ---
+    function addMessage(text, sender) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${sender}-message`;
+        messageDiv.textContent = text;
+        messagesContainer.appendChild(messageDiv);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight; // Auto-scroll
+    }
+
+    async function handleSend() {
+        if (WORKFLOW_ID === 'your-workflow-id-goes-here') {
+            addMessage('Error: Please set the WORKFLOW_ID in the script.', 'bot');
+            return;
+        }
+
+        const messageText = messageInput.value.trim();
+        if (!messageText) return;
+
+        addMessage(messageText, 'user');
+        messageInput.value = '';
+
+        try {
+            const listener = await lucidflow.trigger({
+                workflowId: WORKFLOW_ID,
+                triggerTag: 'main',
+                initialData: { message: messageText }
+            });
+            
+            addMessage('...', 'bot'); // Show typing indicator
+            const botMessages = Array.from(messagesContainer.getElementsByClassName('bot-message'));
+            const typingIndicator = botMessages[botMessages.length - 1];
+
+            listener.listen('res', (data) => {
+                // Update the typing indicator with the actual response
+                typingIndicator.textContent = data.reply || 'No reply received.';
+            });
+
+        } catch (error) {
+            console.error('Error triggering workflow:', error);
+            addMessage(`Error: ${error.message}`, 'bot');
+        }
+    }
+
+    // --- Event Listeners ---
+    sendButton.addEventListener('click', handleSend);
+    messageInput.addEventListener('keypress', (event) => {
+        if (event.key === 'Enter') {
+            handleSend();
+        }
+    });
+
+    // Initial bot message
+    addMessage('Hello! Please set the WORKFLOW_ID in the HTML file, then refresh and we can start.', 'bot');
+
+</script>
+
+</body>
+</html>
