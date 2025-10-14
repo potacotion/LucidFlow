@@ -165,6 +165,8 @@ For developers who want to create custom nodes, we have planned `lucidflow-cli` 
 ## 🤝 How to Contribute
 
 We warmly welcome and encourage community contributions! You can get involved in the following ways:
+-   **Join our community**:
+    -   [Discord](https://discord.gg/5mDTr3fR)
 -   **Develop new nodes**: Extend the functionality of LucidFlow.
 -   **Provide multi-language translations**: Help us bring LucidFlow to a wider audience.
 -   **Submit bug reports or feature suggestions**: Let us know your thoughts on [GitHub Issues](https://github.com/your-repo/lucidflow/issues).
@@ -174,4 +176,4 @@ Before you start, please read our contribution guidelines (TODO: link to CONTRIB
 
 ## 📄 License
 
-LucidFlow is licensed under the [MIT License](LICENSE).
+LucidFlow is licensed under the [GPL-3.0 License](LICENSE).

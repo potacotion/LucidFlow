@@ -166,6 +166,9 @@ graph TD
 ## 🤝 如何贡献
 
 我们热烈欢迎并鼓励社区的贡献！您可以通过以下方式参与进来：
+-   **加入我们的社区**:
+    -   QQ: 480986814
+    -   [Discord](https://discord.gg/5mDTr3fR)
 -   **开发新的节点**: 扩展 LucidFlow 的功能。
 -   **提供多语言翻译**: 帮助我们将 LucidFlow 带给更广泛的用户。
 -   **提交 Bug 报告或功能建议**: 在 [GitHub Issues](https://github.com/your-repo/lucidflow/issues) 中让我们知道您的想法。
@@ -175,4 +178,4 @@ graph TD
 
 ## 📄 许可证
 
-LucidFlow 采用 [MIT 许可证](LICENSE)。
+LucidFlow 采用 [GPL-3.0 许可证](LICENSE)。
