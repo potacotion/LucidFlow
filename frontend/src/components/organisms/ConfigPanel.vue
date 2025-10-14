@@ -58,29 +58,36 @@ const dynamicInputPorts = computed(() => {
   if (!node || !definition?.dynamicPorts) {
     return [];
   }
-  // Filter for ports that match the dynamic port template's name prefix
   const prefix = definition.dynamicPorts.portTemplate.namePrefix;
   return node.ports.filter(p => p.direction === 'in' && p.name.startsWith(prefix));
 });
 
-function addDynamicPort() {
+const dynamicOutputPorts = computed(() => {
+  const node = workflowStore.selectedNode;
+  const definition = workflowStore.selectedNodeDefinition;
+  if (!node || !definition?.dynamicPorts) {
+    return [];
+  }
+  const prefix = definition.dynamicPorts.portTemplate.namePrefix;
+  return node.ports.filter(p => p.direction === 'out' && p.name.startsWith(prefix));
+});
+
+function addDynamicPort(direction: 'in' | 'out') {
   const node = workflowStore.selectedNode;
   const definition = workflowStore.selectedNodeDefinition;
   if (!node || !definition?.dynamicPorts) return;
 
   const template = definition.dynamicPorts.portTemplate;
-  const existingPorts = dynamicInputPorts.value;
+
+  const existingPorts = direction === 'in' ? dynamicInputPorts.value : dynamicOutputPorts.value;
   const newPortNumber = existingPorts.length + 1;
 
   const newPort: PortDefinition = {
-    // We need to satisfy the PortDefinition type, especially the required 'type' property.
-    // The Partial<PortDefinition> in the template allows it to be optional there,
-    // but here we must ensure it's defined.
-    type: 'data', // Assuming dynamic ports are always 'data' for now
+    type: 'data', // Default to 'data', should be overridden by template if specified
     ...template,
     name: `${template.namePrefix}${newPortNumber}`,
     label: `${template.labelPrefix} ${newPortNumber}`,
-    direction: 'in', // Explicitly set direction
+    direction, // Use the provided direction
   };
 
   const newPorts = [...node.ports, newPort];
@@ -134,28 +141,46 @@ function removeDynamicPort(portNameToRemove: string) {
 
       <!-- Dynamic Ports Management -->
       <div v-if="workflowStore.selectedNodeDefinition?.dynamicPorts" class="dynamic-ports-section">
-        <BaseStack direction="column" gap="sm">
-          <BaseText size="sm" weight="bold">Dynamic Inputs</BaseText>
-          <div v-if="!dynamicInputPorts.length">
-             <BaseText size="sm" color="secondary" :italic="true">No dynamic inputs added.</BaseText>
-          </div>
-          <div v-for="port in dynamicInputPorts" :key="port.name" class="dynamic-port-row">
-            <BaseText size="sm">{{ port.label }}</BaseText>
-            <BaseButton size="sm" variant="danger" @click="removeDynamicPort(port.name)" :circle="true" class="remove-port-button">
-              <BaseIcon icon="fas fa-trash" size="xs"/>
-            </BaseButton>
+        <BaseStack direction="column" gap="lg">
+          <!-- Inputs Section -->
+          <div v-if="workflowStore.selectedNodeDefinition.dynamicPorts.canAdd.in">
+            <BaseStack direction="column" gap="sm">
+              <BaseText size="sm" weight="bold">Dynamic Inputs</BaseText>
+              <div v-if="!dynamicInputPorts.length">
+                <BaseText size="sm" color="secondary" :italic="true">No dynamic inputs added.</BaseText>
+              </div>
+              <div v-for="port in dynamicInputPorts" :key="port.name" class="dynamic-port-row">
+                <BaseText size="sm">{{ port.label }}</BaseText>
+                <BaseButton size="sm" variant="danger" @click="removeDynamicPort(port.name)" :circle="true" class="remove-port-button">
+                  <BaseIcon icon="fas fa-trash" size="xs"/>
+                </BaseButton>
+              </div>
+              <BaseButton @click="addDynamicPort('in')" size="sm" variant="secondary" class="add-port-button">
+                <BaseIcon icon="fas fa-plus" size="sm"/>
+                Add Input
+              </BaseButton>
+            </BaseStack>
           </div>
 
-          <BaseButton
-            v-if="workflowStore.selectedNodeDefinition.dynamicPorts.canAdd.in"
-            @click="addDynamicPort"
-            size="sm"
-            variant="secondary"
-            class="add-port-button"
-          >
-            <BaseIcon icon="fas fa-plus" size="sm"/>
-            Add Input
-          </BaseButton>
+          <!-- Outputs Section -->
+          <div v-if="workflowStore.selectedNodeDefinition.dynamicPorts.canAdd.out">
+            <BaseStack direction="column" gap="sm">
+              <BaseText size="sm" weight="bold">Dynamic Outputs</BaseText>
+              <div v-if="!dynamicOutputPorts.length">
+                <BaseText size="sm" color="secondary" :italic="true">No dynamic outputs added.</BaseText>
+              </div>
+              <div v-for="port in dynamicOutputPorts" :key="port.name" class="dynamic-port-row">
+                <BaseText size="sm">{{ port.label }}</BaseText>
+                <BaseButton size="sm" variant="danger" @click="removeDynamicPort(port.name)" :circle="true" class="remove-port-button">
+                  <BaseIcon icon="fas fa-trash" size="xs"/>
+                </BaseButton>
+              </div>
+              <BaseButton @click="addDynamicPort('out')" size="sm" variant="secondary" class="add-port-button">
+                <BaseIcon icon="fas fa-plus" size="sm"/>
+                Add Output
+              </BaseButton>
+            </BaseStack>
+          </div>
         </BaseStack>
       </div>
 

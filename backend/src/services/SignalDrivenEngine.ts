@@ -92,14 +92,21 @@
           throw new Error(`Start node ID ${startNodeId} not found in the graph.`);
       }
 
-      // 2. 将 initialData 存储在特殊缓存中，供 startNode 消费
+      // 2. [重构] 如果有初始数据，直接执行起始节点并注入数据
       if (initialData !== undefined) {
-          this.resultsCache.set(`INPUT_DATA_${startNodeId}`, initialData);
+          const startNodeDef = getNodeDefinition(startNode);
+          if (startNodeDef.isTriggerable) {
+              // Directly execute the trigger node's logic with initialData as its input
+              const outputs = await NodeExecutor.executeNodeLogic(startNode, initialData, this.hooks!);
+              this.resultsCache.set(startNode.id, outputs);
+              
+              // Trigger the downstream control flow from the 'out' port
+              this.enqueueDownstreamSignals(startNode, 'out', 'control');
+          }
+      } else {
+          // 3. [原逻辑] 如果没有初始数据，正常启动执行流
+          this.enqueueSignal(startNodeId, 'in', 'control');
       }
-      
-      // 3. 启动执行流
-      // 假设所有触发节点都有一个默认的控制输入端口 'in'
-      this.enqueueSignal(startNodeId, 'in', 'control');
 
       await this.loop();
 
@@ -174,20 +181,6 @@
           return context.loop[targetPortName];
       }
 
-      // [新增逻辑] 检查是否有注入的初始数据 (仅用于工作流的起始节点)
-      if (this.resultsCache.has(`INPUT_DATA_${targetNode.id}`)) {
-          const def = getNodeDefinition(targetNode);
-          // 查找第一个数据输入端口，仅当目标端口与该端口匹配时才注入
-          const dataInPort = (targetNode.ports || def.ports).find(p => p.type === 'data' && p.direction === 'in');
-          
-          if (dataInPort && dataInPort.name === targetPortName) {
-              const initialData = this.resultsCache.get(`INPUT_DATA_${targetNode.id}`);
-              this.resultsCache.delete(`INPUT_DATA_${targetNode.id}`); // 确保只使用一次
-              console.log(`[DEBUG] Injecting initial data for start node ${targetNode.id}.${targetPortName}`);
-              return initialData;
-          }
-      }
-      
       const edge = this.graphWalker.findUpstreamEdge(targetNode.id, targetPortName);
       if (!edge) {
         const portsToSearch = targetNode.ports || getNodeDefinition(targetNode).ports;

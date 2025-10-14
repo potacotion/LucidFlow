@@ -2,32 +2,19 @@ import { NodeDefinition, PropertyDefinition, PortDefinition, RunParams } from '@
 
 // 端口定义
 const ports: PortDefinition[] = [
+    // The 'in' port is kept for the engine to kickstart the execution signal.
     {
         name: 'in',
         label: 'In',
         type: 'control',
         direction: 'in',
     },
-    {
-        name: 'inputData',
-        label: 'Input Data',
-        type: 'data',
-        direction: 'in',
-        dataType: 'any',
-        defaultValue: null,
-    },
+    // The 'out' port signals the next node in the control flow.
     {
         name: 'out',
         label: 'Out',
         type: 'control',
         direction: 'out',
-    },
-    {
-        name: 'output',
-        label: 'Output Data',
-        type: 'data',
-        direction: 'out',
-        dataType: 'any',
     },
 ];
 
@@ -46,22 +33,30 @@ const properties: PropertyDefinition[] = [
 const run = async (params: RunParams): Promise<any> => {
     const { input } = params;
 
-    // 当这个节点作为起始节点被调用时，initialData 会通过 Engine 逻辑被注入到 input.inputData 中。
-    // 它的唯一作用是传递输入数据并启动控制流。
-
-    return { 
-        output: input.inputData, // 将输入数据作为输出数据
-        out: true 
-    }; 
+    // With the new engine logic, the `initialData` from the trigger call
+    // will be directly passed as the `input`. The `run` function's role
+    // is to simply return this data. The engine will then map the keys
+    // of the returned object to the corresponding dynamic output ports.
+    return input;
 };
 
 const ManualTriggerNode: NodeDefinition = {
     type: 'trigger/manual',
     label: 'Manual Trigger',
-    description: 'A manually triggerable node that starts a workflow and passes initial input data.',
-    archetype: 'action',
+    description: 'A manually triggerable node that starts a workflow and passes initial input data through dynamically created output ports.',
+    archetype: 'action', // Remains 'action' as it initiates a flow.
     version: '1.0.0',
-    isTriggerable: true, // 关键属性
+    isTriggerable: true,
+    dynamicPorts: {
+        canAdd: { in: false, out: true }, // Can only add data output ports
+        portTemplate: {
+            namePrefix: 'data',
+            labelPrefix: 'Data',
+            type: 'data',
+            direction: 'out',
+            dataType: 'any',
+        },
+    },
     ports,
     properties,
     run,

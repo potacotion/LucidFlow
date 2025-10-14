@@ -52,7 +52,7 @@ export type NodeDefinition = {
   /**
    * [核心] 节点的执行函数，在沙箱环境中执行节点的核心逻辑
    */
-  run: (params: RunParams) => Promise<{ [portName: string]: any }>;
+  run: (params: RunParams) => Promise<{ [portName: string]: any }> | ISubscribable;
 
   /**
    * [新增] 节点的语义化版本 (e.g., "1.0.0", "1.2.5")。
