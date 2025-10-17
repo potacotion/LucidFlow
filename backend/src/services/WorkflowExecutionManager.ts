@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 import { Graph, EngineHooks, NodeStatus, NodeInstance, NodeDefinition } from '@src/models/workflow';
-import { SignalDrivenEngine } from './SignalDrivenEngine';
+import { Engine} from './engine/index';
 import { connectionManager } from './WebSocketService';
 import logger from 'jet-logger';
 import NodeRegistry from './node-definitions'; // 节点注册表
@@ -100,7 +100,7 @@ class WorkflowExecutionManager {
         return;
     }
 
-    const engine = new SignalDrivenEngine();
+    const engine = new Engine();
 
     // 启动引擎 (使用新的签名) (任务 1.4 验收标准 4)
     engine.run(graph, { runId, startNodeId, initialData, hooks }).then(finalResults => {

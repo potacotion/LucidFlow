@@ -1,5 +1,5 @@
 import { NodeInstance, NodeDefinition, Logger, EngineHooks } from '@src/models/workflow'; // 导入 EngineHooks
-import NodeRegistry from './node-definitions'; // 导入 NodeRegistry
+import NodeRegistry from '../node-definitions'; // 导入 NodeRegistry
 
 /**
  * A simple logger implementation that proxies to the console.

@@ -26,7 +26,7 @@ export class Engine {
     ]);
   }
 
-  public async run(graph: { nodes: NodeInstance[], edges: Edge[] }, config: { runId: string; startNodeId: string; initialData?: any; hooks?: EngineHooks }): Promise<NodeOutput | void> {
+  public async run(graph: { nodes: NodeInstance[], edges: Edge[] }, config : { runId: string; startNodeId: string; initialData?: any; hooks?: EngineHooks }): Promise<NodeOutput | void> {
     const { runId, startNodeId, initialData, hooks } = config;
     
     const graphWalker = new GraphWalker(graph.nodes, graph.edges);

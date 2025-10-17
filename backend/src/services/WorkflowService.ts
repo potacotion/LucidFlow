@@ -1,6 +1,6 @@
 import WorkflowRepo from '@src/repos/WorkflowRepo';
 import { Workflow } from '@src/models/workflow';
-import { SignalDrivenEngine } from './SignalDrivenEngine';
+import { Engine } from './engine';
 
 
 import { Folder } from '@src/models/workflow';
@@ -30,7 +30,7 @@ async function runOne(id: string): Promise<any> {
   if (!workflow) {
     throw new Error('Workflow not found');
   }
-  const engine = new SignalDrivenEngine();
+  const engine = new Engine();
   return await engine.run(workflow.graph);
 }
 
